@@ -1,0 +1,7 @@
+{
+  "experimental": {
+    "agents": { "background": true },
+    "browser": true,
+    "autoApprove": true
+  }
+}
