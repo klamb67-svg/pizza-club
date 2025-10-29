@@ -1,19 +1,24 @@
 // app/orderConfirmation.tsx
-import React from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
   ScrollView,
+  Alert,
 } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useResponsiveValues } from "../lib/responsive";
 import { handleAccountNavigation } from "../lib/authUtils";
+import { orderService, OrderData } from "../lib/orderService";
 
 export default function OrderConfirmation() {
   const router = useRouter();
   const responsive = useResponsiveValues();
+  const [orderCreated, setOrderCreated] = useState(false);
+  const [orderId, setOrderId] = useState<number | null>(null);
+  const [loading, setLoading] = useState(true);
   
   // Get order data from navigation params
   const params = useLocalSearchParams();
@@ -23,12 +28,72 @@ export default function OrderConfirmation() {
   const date = Array.isArray(params.date) ? params.date[0] : params.date || new Date().toLocaleDateString();
   const phone = Array.isArray(params.phone) ? params.phone[0] : params.phone || "555-123-4567";
 
+  // Extract pizza price from pizza name (basic parsing)
+  const pizzaPrice = pizza.includes('Margherita') ? 18.99 : 
+                    pizza.includes('Pepperoni') ? 19.99 : 
+                    pizza.includes('Hawaiian') ? 21.99 : 18.99;
+
+  useEffect(() => {
+    createOrder();
+  }, []);
+
+  const createOrder = async () => {
+    try {
+      setLoading(true);
+      
+      const orderData: OrderData = {
+        member_id: "69149187-94af-4892-b24c-f169bac1e825", // Use actual member UUID
+        pizza_name: pizza,
+        pizza_price: pizzaPrice,
+        time_slot: time,
+        date: date,
+        phone: phone,
+        special_instructions: `Order for ${name}`
+      };
+
+      console.log('🍕 Creating order with data:', orderData);
+      
+      const result = await orderService.createOrder(orderData);
+      
+      if (result.success && result.orderId) {
+        setOrderCreated(true);
+        setOrderId(result.orderId);
+        console.log('✅ Order created successfully:', result.orderId);
+      } else {
+        console.error('❌ Order creation failed:', result.error);
+        Alert.alert('Order Error', result.error || 'Failed to create order');
+      }
+    } catch (error) {
+      console.error('❌ Order creation error:', error);
+      Alert.alert('Error', 'Failed to create order');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const styles = createStyles(responsive);
+
+  if (loading) {
+    return (
+      <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
+        <Text style={styles.message}>🔄 Creating your order...</Text>
+        <Text style={styles.loadingText}>Please wait while we process your order and send confirmation.</Text>
+      </ScrollView>
+    );
+  }
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
       {/* Message at top */}
-      <Text style={styles.message}>✅ Your order has been placed!</Text>
+      <Text style={styles.message}>
+        {orderCreated ? '✅ Your order has been placed!' : '❌ Order failed to process'}
+      </Text>
+
+      {orderCreated && orderId && (
+        <View style={styles.orderIdCard}>
+          <Text style={styles.orderIdText}>Order #{orderId}</Text>
+        </View>
+      )}
 
       {/* Order Details Card */}
       <View style={styles.orderCard}>
@@ -45,6 +110,11 @@ export default function OrderConfirmation() {
         </View>
         
         <View style={styles.detailRow}>
+          <Text style={styles.detailLabel}>Price:</Text>
+          <Text style={styles.detailValue}>${pizzaPrice}</Text>
+        </View>
+        
+        <View style={styles.detailRow}>
           <Text style={styles.detailLabel}>Pickup Time:</Text>
           <Text style={styles.detailValue}>{time}</Text>
         </View>
@@ -58,6 +128,12 @@ export default function OrderConfirmation() {
           <Text style={styles.detailLabel}>Pickup:</Text>
           <Text style={styles.detailValue}>349 Eagle Dr (Hot Box by mailbox)</Text>
         </View>
+        
+        {orderCreated && (
+          <View style={styles.smsNotification}>
+            <Text style={styles.smsText}>📱 SMS confirmation sent to {phone}</Text>
+          </View>
+        )}
       </View>
 
       {/* Menu buttons */}
@@ -118,6 +194,28 @@ const createStyles = (responsive: any) => StyleSheet.create({
     marginBottom: responsive.margin.lg,
     textAlign: "center",
   },
+  loadingText: {
+    fontSize: responsive.fontSize.lg,
+    color: "#00FF66",
+    fontFamily: "VT323_400Regular",
+    textAlign: "center",
+    opacity: 0.8,
+  },
+  orderIdCard: {
+    backgroundColor: "#001a00",
+    borderWidth: 2,
+    borderColor: "#00FF66",
+    padding: 12,
+    marginBottom: responsive.margin.md,
+    borderRadius: 4,
+  },
+  orderIdText: {
+    fontSize: responsive.fontSize.xl,
+    color: "#00FF66",
+    fontFamily: "VT323_400Regular",
+    textAlign: "center",
+    fontWeight: "bold",
+  },
   orderCard: {
     width: "100%",
     maxWidth: responsive.isMobile ? 320 : responsive.isTablet ? 400 : 450,
@@ -161,6 +259,20 @@ const createStyles = (responsive: any) => StyleSheet.create({
     fontFamily: "VT323_400Regular",
     flex: 2,
     textAlign: "right",
+  },
+  smsNotification: {
+    marginTop: 12,
+    padding: 8,
+    backgroundColor: "#001a00",
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: "#00aa44",
+  },
+  smsText: {
+    fontSize: responsive.fontSize.md,
+    color: "#00FF66",
+    fontFamily: "VT323_400Regular",
+    textAlign: "center",
   },
   menuBox: {
     width: "100%",
