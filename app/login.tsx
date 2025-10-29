@@ -15,6 +15,7 @@ import {
   View,
 } from "react-native";
 import { supabase } from "../lib/supabase";
+import { adminAuth } from "../lib/adminAuth";
 
 const green = "#00FF66";
 const bg = "#001a00";
@@ -77,8 +78,19 @@ export default function Login() {
         }
       }
 
-      console.log(`🔍 STEP 2: Querying Supabase for username "${username}"`);
-      console.log(`📡 SUPABASE CALL: .from("members").select("id, username").eq("username", "${username}").single()`);
+      console.log(`🔍 STEP 2: Checking admin access for username "${username}"`);
+      
+      // First check if this is an admin user
+      const adminUser = await adminAuth.checkAdminAccess(username);
+      if (adminUser) {
+        console.log(`✅ ADMIN LOGIN SUCCESS: Found admin user "${adminUser.username}"`);
+        Alert.alert('Admin Access', `Welcome ${adminUser.username}!`, [
+          { text: 'OK', onPress: () => router.replace('/admin') }
+        ]);
+        return;
+      }
+      
+      console.log(`🔍 STEP 3: Querying Supabase for member username "${username}"`);
       
       // Look up member by username (more reliable than first_name + last_name)
       const { data, error } = await supabase

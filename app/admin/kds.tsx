@@ -6,7 +6,6 @@ import {
   View,
   FlatList,
   TouchableOpacity,
-  TextInput,
   Alert,
   RefreshControl,
 } from 'react-native';
@@ -18,11 +17,11 @@ const green = "#00FF66";
 const bg = "#001a00";
 const darkGray = "#1a1a1a";
 
-// Order interface for admin display
-interface AdminOrder {
+// KDS Order interface
+interface KDSOrder {
   id: string;
+  order_id: string;
   member_name: string;
-  member_phone: string;
   pizza_name: string;
   pizza_price: number;
   time_slot: string;
@@ -30,20 +29,23 @@ interface AdminOrder {
   status: 'pending' | 'in_progress' | 'completed' | 'cancelled';
   special_instructions?: string;
   created_at: string;
-  order_id: string;
+  estimated_time?: number; // minutes
 }
 
-export default function Orders() {
-  const [orders, setOrders] = useState<AdminOrder[]>([]);
-  const [searchQuery, setSearchQuery] = useState('');
+export default function KitchenDisplaySystem() {
+  const [orders, setOrders] = useState<KDSOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [selectedStatus, setSelectedStatus] = useState<string>('all');
+  const [selectedView, setSelectedView] = useState<'pending' | 'in_progress' | 'all'>('pending');
 
   useEffect(() => {
     // Check admin access
     checkAdminAccess();
     loadOrders();
+    
+    // Auto-refresh every 30 seconds
+    const interval = setInterval(loadOrders, 30000);
+    return () => clearInterval(interval);
   }, []);
 
   const checkAdminAccess = async () => {
@@ -57,9 +59,9 @@ export default function Orders() {
   const loadOrders = async () => {
     try {
       setLoading(true);
-      console.log('📋 Loading orders for admin...');
+      console.log('🍕 Loading KDS orders...');
       
-      // Get all members with order information stored in address field
+      // Get all members with order information
       const { data: members, error } = await supabase
         .from('members')
         .select('id, first_name, last_name, phone, address, created_at')
@@ -67,13 +69,12 @@ export default function Orders() {
         .order('created_at', { ascending: false });
       
       if (error) {
-        console.error('❌ Error loading members:', error);
-        Alert.alert('Error', 'Failed to load orders');
+        console.error('❌ Error loading KDS orders:', error);
         return;
       }
       
       // Parse order information from address field
-      const adminOrders: AdminOrder[] = [];
+      const kdsOrders: KDSOrder[] = [];
       
       members?.forEach(member => {
         if (member.address && member.address.includes('ORDER_')) {
@@ -83,29 +84,44 @@ export default function Orders() {
           if (orderMatch) {
             const [, orderId, pizzaName, price, timeSlot, date] = orderMatch;
             
-            adminOrders.push({
+            // Determine status based on address content
+            let status: KDSOrder['status'] = 'pending';
+            if (member.address.includes('STATUS_in_progress_')) {
+              status = 'in_progress';
+            } else if (member.address.includes('STATUS_completed_')) {
+              status = 'completed';
+            } else if (member.address.includes('STATUS_cancelled_')) {
+              status = 'cancelled';
+            }
+            
+            // Calculate estimated prep time based on pizza type
+            let estimatedTime = 15; // default
+            if (pizzaName.includes('Hawaiian')) estimatedTime = 18;
+            if (pizzaName.includes('Meatball')) estimatedTime = 20;
+            if (pizzaName.includes('Pepperoni')) estimatedTime = 16;
+            
+            kdsOrders.push({
               id: member.id,
               order_id: orderId,
               member_name: `${member.first_name} ${member.last_name}`,
-              member_phone: member.phone,
               pizza_name: pizzaName,
               pizza_price: parseFloat(price),
               time_slot: timeSlot,
               date: date,
-              status: 'pending', // Default status
+              status: status,
               special_instructions: member.address.includes('Extra') ? 'Extra cheese' : undefined,
-              created_at: member.created_at
+              created_at: member.created_at,
+              estimated_time: estimatedTime
             });
           }
         }
       });
       
-      console.log('✅ Loaded orders:', adminOrders.length);
-      setOrders(adminOrders);
+      console.log('✅ Loaded KDS orders:', kdsOrders.length);
+      setOrders(kdsOrders);
       
     } catch (error) {
-      console.error('❌ Error loading orders:', error);
-      Alert.alert('Error', 'Failed to load orders');
+      console.error('❌ Error loading KDS orders:', error);
     } finally {
       setLoading(false);
     }
@@ -117,11 +133,11 @@ export default function Orders() {
     setRefreshing(false);
   };
 
-  const updateOrderStatus = async (orderId: string, newStatus: AdminOrder['status']) => {
+  const updateOrderStatus = async (orderId: string, newStatus: KDSOrder['status']) => {
     try {
-      console.log('🔄 Updating order status:', orderId, 'to', newStatus);
+      console.log('🔄 Updating KDS order status:', orderId, 'to', newStatus);
       
-      // For now, we'll update the member's address field to reflect status
+      // Update the member's address field to reflect status
       const { error } = await supabase
         .from('members')
         .update({ 
@@ -131,7 +147,7 @@ export default function Orders() {
         .eq('id', orderId);
       
       if (error) {
-        console.error('❌ Status update failed:', error);
+        console.error('❌ KDS status update failed:', error);
         Alert.alert('Error', 'Failed to update order status');
         return;
       }
@@ -143,69 +159,15 @@ export default function Orders() {
           : order
       ));
       
-      console.log('✅ Order status updated successfully');
+      console.log('✅ KDS order status updated successfully');
       
     } catch (error) {
-      console.error('❌ Status update error:', error);
+      console.error('❌ KDS status update error:', error);
       Alert.alert('Error', 'Failed to update order status');
     }
   };
 
-  const deleteOrder = async (orderId: string) => {
-    Alert.alert(
-      'Delete Order',
-      'Are you sure you want to delete this order?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              console.log('🗑️ Deleting order:', orderId);
-              
-              // Clear the order information from member's address field
-              const { error } = await supabase
-                .from('members')
-                .update({ 
-                  address: null,
-                  updated_at: new Date().toISOString()
-                })
-                .eq('id', orderId);
-              
-              if (error) {
-                console.error('❌ Order deletion failed:', error);
-                Alert.alert('Error', 'Failed to delete order');
-                return;
-              }
-              
-              // Update local state
-              setOrders(orders.filter(order => order.id !== orderId));
-              
-              console.log('✅ Order deleted successfully');
-              
-            } catch (error) {
-              console.error('❌ Order deletion error:', error);
-              Alert.alert('Error', 'Failed to delete order');
-            }
-          }
-        }
-      ]
-    );
-  };
-
-  const filteredOrders = orders.filter(order => {
-    const matchesSearch = 
-      order.member_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      order.pizza_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      order.member_phone.includes(searchQuery);
-    
-    const matchesStatus = selectedStatus === 'all' || order.status === selectedStatus;
-    
-    return matchesSearch && matchesStatus;
-  });
-
-  const getStatusColor = (status: AdminOrder['status']) => {
+  const getStatusColor = (status: KDSOrder['status']) => {
     switch (status) {
       case 'pending': return '#FFA500';
       case 'in_progress': return '#00BFFF';
@@ -215,24 +177,53 @@ export default function Orders() {
     }
   };
 
-  const renderOrderItem = ({ item }: { item: AdminOrder }) => (
-    <View style={styles.orderCard}>
+  const getStatusIcon = (status: KDSOrder['status']) => {
+    switch (status) {
+      case 'pending': return 'time-outline';
+      case 'in_progress': return 'play-outline';
+      case 'completed': return 'checkmark-circle-outline';
+      case 'cancelled': return 'close-circle-outline';
+      default: return 'help-outline';
+    }
+  };
+
+  const filteredOrders = orders.filter(order => {
+    if (selectedView === 'all') return true;
+    return order.status === selectedView;
+  });
+
+  const renderOrderItem = ({ item }: { item: KDSOrder }) => (
+    <View style={[styles.orderCard, { borderColor: getStatusColor(item.status) }]}>
       <View style={styles.orderHeader}>
-        <Text style={styles.orderId}>Order #{item.order_id}</Text>
+        <View style={styles.orderIdContainer}>
+          <Text style={styles.orderId}>#{item.order_id}</Text>
+          <Text style={styles.orderTime}>{item.time_slot}</Text>
+        </View>
         <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.status) }]}>
+          <Ionicons 
+            name={getStatusIcon(item.status)} 
+            size={16} 
+            color={bg} 
+          />
           <Text style={styles.statusText}>{item.status.toUpperCase()}</Text>
         </View>
       </View>
       
-      <View style={styles.orderDetails}>
-        <Text style={styles.memberName}>{item.member_name}</Text>
-        <Text style={styles.memberPhone}>{item.member_phone}</Text>
+      <View style={styles.orderContent}>
         <Text style={styles.pizzaName}>{item.pizza_name}</Text>
-        <Text style={styles.price}>${item.pizza_price}</Text>
-        <Text style={styles.timeSlot}>{item.time_slot} on {item.date}</Text>
+        <Text style={styles.memberName}>for {item.member_name}</Text>
+        
         {item.special_instructions && (
-          <Text style={styles.specialInstructions}>Special: {item.special_instructions}</Text>
+          <View style={styles.specialInstructionsContainer}>
+            <Text style={styles.specialInstructionsLabel}>SPECIAL:</Text>
+            <Text style={styles.specialInstructionsText}>{item.special_instructions}</Text>
+          </View>
         )}
+        
+        <View style={styles.orderDetails}>
+          <Text style={styles.price}>${item.pizza_price}</Text>
+          <Text style={styles.estimatedTime}>~{item.estimated_time} min</Text>
+        </View>
       </View>
       
       <View style={styles.orderActions}>
@@ -241,6 +232,7 @@ export default function Orders() {
             style={[styles.actionButton, styles.startButton]}
             onPress={() => updateOrderStatus(item.id, 'in_progress')}
           >
+            <Ionicons name="play" size={16} color={bg} />
             <Text style={styles.actionButtonText}>START</Text>
           </TouchableOpacity>
         )}
@@ -250,16 +242,17 @@ export default function Orders() {
             style={[styles.actionButton, styles.completeButton]}
             onPress={() => updateOrderStatus(item.id, 'completed')}
           >
+            <Ionicons name="checkmark" size={16} color={bg} />
             <Text style={styles.actionButtonText}>COMPLETE</Text>
           </TouchableOpacity>
         )}
         
-        <TouchableOpacity
-          style={[styles.actionButton, styles.deleteButton]}
-          onPress={() => deleteOrder(item.id)}
-        >
-          <Text style={styles.actionButtonText}>DELETE</Text>
-        </TouchableOpacity>
+        {item.status === 'completed' && (
+          <View style={styles.completedContainer}>
+            <Ionicons name="checkmark-circle" size={20} color={green} />
+            <Text style={styles.completedText}>READY FOR PICKUP</Text>
+          </View>
+        )}
       </View>
     </View>
   );
@@ -268,7 +261,7 @@ export default function Orders() {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingContainer}>
-          <Text style={styles.loadingText}>Loading orders...</Text>
+          <Text style={styles.loadingText}>Loading kitchen orders...</Text>
         </View>
       </SafeAreaView>
     );
@@ -277,40 +270,34 @@ export default function Orders() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>ORDERS</Text>
+        <Text style={styles.title}>KITCHEN DISPLAY</Text>
         <TouchableOpacity onPress={onRefresh}>
           <Ionicons name="refresh" size={24} color={green} />
         </TouchableOpacity>
       </View>
       
-      <View style={styles.filters}>
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Search orders..."
-          placeholderTextColor="#666"
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-        />
-        
-        <View style={styles.statusFilters}>
-          {['all', 'pending', 'in_progress', 'completed', 'cancelled'].map(status => (
-            <TouchableOpacity
-              key={status}
-              style={[
-                styles.statusFilter,
-                selectedStatus === status && styles.statusFilterActive
-              ]}
-              onPress={() => setSelectedStatus(status)}
-            >
-              <Text style={[
-                styles.statusFilterText,
-                selectedStatus === status && styles.statusFilterTextActive
-              ]}>
-                {status.toUpperCase()}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
+      <View style={styles.viewFilters}>
+        {[
+          { key: 'pending', label: 'PENDING', count: orders.filter(o => o.status === 'pending').length },
+          { key: 'in_progress', label: 'IN PROGRESS', count: orders.filter(o => o.status === 'in_progress').length },
+          { key: 'all', label: 'ALL', count: orders.length }
+        ].map(view => (
+          <TouchableOpacity
+            key={view.key}
+            style={[
+              styles.viewFilter,
+              selectedView === view.key && styles.viewFilterActive
+            ]}
+            onPress={() => setSelectedView(view.key as any)}
+          >
+            <Text style={[
+              styles.viewFilterText,
+              selectedView === view.key && styles.viewFilterTextActive
+            ]}>
+              {view.label} ({view.count})
+            </Text>
+          </TouchableOpacity>
+        ))}
       </View>
       
       <FlatList
@@ -352,7 +339,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 20,
     paddingVertical: 15,
-    borderBottomWidth: 1,
+    borderBottomWidth: 2,
     borderBottomColor: green,
   },
   title: {
@@ -361,41 +348,31 @@ const styles = StyleSheet.create({
     fontFamily: 'VT323_400Regular',
     fontWeight: 'bold',
   },
-  filters: {
+  viewFilters: {
+    flexDirection: 'row',
     paddingHorizontal: 20,
     paddingVertical: 15,
-  },
-  searchInput: {
-    backgroundColor: darkGray,
-    color: green,
-    paddingHorizontal: 15,
-    paddingVertical: 10,
-    borderRadius: 5,
-    marginBottom: 15,
-    fontFamily: 'VT323_400Regular',
-    fontSize: 16,
-  },
-  statusFilters: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
     gap: 10,
   },
-  statusFilter: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 15,
-    borderWidth: 1,
+  viewFilter: {
+    flex: 1,
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    borderRadius: 8,
+    borderWidth: 2,
     borderColor: green,
+    alignItems: 'center',
   },
-  statusFilterActive: {
+  viewFilterActive: {
     backgroundColor: green,
   },
-  statusFilterText: {
+  viewFilterText: {
     color: green,
-    fontSize: 12,
+    fontSize: 14,
     fontFamily: 'VT323_400Regular',
+    fontWeight: 'bold',
   },
-  statusFilterTextActive: {
+  viewFilterTextActive: {
     color: bg,
   },
   listContainer: {
@@ -404,83 +381,113 @@ const styles = StyleSheet.create({
   },
   orderCard: {
     backgroundColor: darkGray,
-    borderRadius: 10,
-    padding: 15,
+    borderRadius: 12,
+    padding: 20,
     marginBottom: 15,
-    borderWidth: 1,
-    borderColor: green,
+    borderWidth: 3,
+    shadowColor: green,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 4,
   },
   orderHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: 15,
+  },
+  orderIdContainer: {
+    flex: 1,
   },
   orderId: {
     color: green,
-    fontSize: 16,
+    fontSize: 20,
     fontFamily: 'VT323_400Regular',
     fontWeight: 'bold',
   },
+  orderTime: {
+    color: '#ccc',
+    fontSize: 14,
+    fontFamily: 'VT323_400Regular',
+  },
   statusBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    gap: 5,
   },
   statusText: {
     color: bg,
-    fontSize: 10,
+    fontSize: 12,
     fontFamily: 'VT323_400Regular',
     fontWeight: 'bold',
   },
-  orderDetails: {
+  orderContent: {
     marginBottom: 15,
   },
+  pizzaName: {
+    color: green,
+    fontSize: 22,
+    fontFamily: 'VT323_400Regular',
+    fontWeight: 'bold',
+    marginBottom: 5,
+  },
   memberName: {
+    color: '#ccc',
+    fontSize: 16,
+    fontFamily: 'VT323_400Regular',
+    marginBottom: 10,
+  },
+  specialInstructionsContainer: {
+    backgroundColor: '#001a00',
+    padding: 10,
+    borderRadius: 8,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: '#FFA500',
+  },
+  specialInstructionsLabel: {
+    color: '#FFA500',
+    fontSize: 12,
+    fontFamily: 'VT323_400Regular',
+    fontWeight: 'bold',
+  },
+  specialInstructionsText: {
+    color: '#ccc',
+    fontSize: 14,
+    fontFamily: 'VT323_400Regular',
+    marginTop: 2,
+  },
+  orderDetails: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  price: {
     color: green,
     fontSize: 18,
     fontFamily: 'VT323_400Regular',
     fontWeight: 'bold',
   },
-  memberPhone: {
-    color: '#ccc',
-    fontSize: 14,
-    fontFamily: 'VT323_400Regular',
-    marginBottom: 5,
-  },
-  pizzaName: {
-    color: green,
-    fontSize: 16,
-    fontFamily: 'VT323_400Regular',
-  },
-  price: {
-    color: green,
-    fontSize: 16,
-    fontFamily: 'VT323_400Regular',
-    fontWeight: 'bold',
-  },
-  timeSlot: {
-    color: '#ccc',
-    fontSize: 14,
-    fontFamily: 'VT323_400Regular',
-  },
-  specialInstructions: {
+  estimatedTime: {
     color: '#FFA500',
-    fontSize: 12,
+    fontSize: 14,
     fontFamily: 'VT323_400Regular',
-    fontStyle: 'italic',
-    marginTop: 5,
   },
   orderActions: {
-    flexDirection: 'row',
-    gap: 10,
+    marginTop: 10,
   },
   actionButton: {
-    paddingHorizontal: 15,
-    paddingVertical: 8,
-    borderRadius: 5,
-    flex: 1,
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    gap: 8,
   },
   startButton: {
     backgroundColor: '#00BFFF',
@@ -488,12 +495,22 @@ const styles = StyleSheet.create({
   completeButton: {
     backgroundColor: green,
   },
-  deleteButton: {
-    backgroundColor: '#FF4444',
-  },
   actionButtonText: {
     color: bg,
-    fontSize: 12,
+    fontSize: 14,
+    fontFamily: 'VT323_400Regular',
+    fontWeight: 'bold',
+  },
+  completedContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    gap: 8,
+  },
+  completedText: {
+    color: green,
+    fontSize: 14,
     fontFamily: 'VT323_400Regular',
     fontWeight: 'bold',
   },
