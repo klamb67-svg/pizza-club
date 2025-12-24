@@ -10,6 +10,7 @@ import {
   RefreshControl,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import * as ScreenOrientation from 'expo-screen-orientation';
 import { supabase } from '../../lib/supabase';
 import { adminAuth } from '../../lib/adminAuth';
 
@@ -37,6 +38,9 @@ export default function KitchenDisplaySystem() {
   const [selectedView, setSelectedView] = useState<'pending' | 'preparing' | 'ready' | 'all'>('pending');
 
   useEffect(() => {
+    // Lock orientation to landscape
+    ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE);
+    
     checkAdminAccess();
     loadOrders();
     
@@ -65,6 +69,8 @@ export default function KitchenDisplaySystem() {
 
     // Cleanup subscription and interval on unmount
     return () => {
+      // Unlock orientation back to normal
+      ScreenOrientation.unlockAsync();
       supabase.removeChannel(subscription);
       clearInterval(intervalId);
     };
