@@ -3,7 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 
 // Direct Supabase configuration (Node.js compatible)
 const SUPABASE_URL = 'https://bvmwcswddbepelgctybs.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ2bXdjc3dkZGJlcGVsZ2N0eWJzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ3OTgzMjYsImV4cCI6MjA3MDM3NDMyNn0._eI2GVgkTRZoD7J1Y-LurfIPPwqrJBVBuERfDB5uNL8';
+const SUPABASE_ANON_KEY = 'sb_publishable_2-7AUXVus7corG_aVvM2gQ_uRqAuYoo';
 
 // Create Supabase client for Node.js
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
