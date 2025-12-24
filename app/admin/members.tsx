@@ -18,8 +18,7 @@ const green = "#00FF66";
 const bg = "#001a00";
 const darkGray = "#1a1a1a";
 
-// Member interface for admin display
-interface AdminMember {
+interface Member {
   id: string;
   first_name: string;
   last_name: string;
@@ -27,18 +26,15 @@ interface AdminMember {
   phone: string;
   address?: string;
   created_at: string;
-  has_order: boolean;
-  order_info?: string;
 }
 
 export default function Members() {
-  const [members, setMembers] = useState<AdminMember[]>([]);
+  const [members, setMembers] = useState<Member[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
-    // Check admin access
     checkAdminAccess();
     loadMembers();
   }, []);
@@ -54,38 +50,22 @@ export default function Members() {
   const loadMembers = async () => {
     try {
       setLoading(true);
-      console.log('👥 Loading members for admin...');
       
-      // Get all members from database
-      const { data: membersData, error } = await supabase
+      const { data, error } = await supabase
         .from('members')
         .select('id, first_name, last_name, username, phone, address, created_at')
         .order('created_at', { ascending: false });
       
       if (error) {
-        console.error('❌ Error loading members:', error);
+        console.error('Error loading members:', error);
         Alert.alert('Error', 'Failed to load members');
         return;
       }
       
-      // Transform data for admin display
-      const adminMembers: AdminMember[] = membersData?.map(member => ({
-        id: member.id,
-        first_name: member.first_name,
-        last_name: member.last_name,
-        username: member.username,
-        phone: member.phone,
-        address: member.address,
-        created_at: member.created_at,
-        has_order: member.address ? member.address.includes('ORDER_') : false,
-        order_info: member.address?.includes('ORDER_') ? member.address : undefined
-      })) || [];
-      
-      console.log('✅ Loaded members:', adminMembers.length);
-      setMembers(adminMembers);
+      setMembers(data || []);
       
     } catch (error) {
-      console.error('❌ Error loading members:', error);
+      console.error('Error loading members:', error);
       Alert.alert('Error', 'Failed to load members');
     } finally {
       setLoading(false);
@@ -98,90 +78,24 @@ export default function Members() {
     setRefreshing(false);
   };
 
-  const deleteMember = async (memberId: string, memberName: string) => {
-    Alert.alert(
-      'Delete Member',
-      `Are you sure you want to delete ${memberName}? This action cannot be undone.`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              console.log('🗑️ Deleting member:', memberId);
-              
-              const { error } = await supabase
-                .from('members')
-                .delete()
-                .eq('id', memberId);
-              
-              if (error) {
-                console.error('❌ Member deletion failed:', error);
-                Alert.alert('Error', 'Failed to delete member');
-                return;
-              }
-              
-              // Update local state
-              setMembers(members.filter(member => member.id !== memberId));
-              
-              console.log('✅ Member deleted successfully');
-              Alert.alert('Success', 'Member deleted successfully');
-              
-            } catch (error) {
-              console.error('❌ Member deletion error:', error);
-              Alert.alert('Error', 'Failed to delete member');
-            }
-          }
-        }
-      ]
-    );
-  };
-
-  const clearMemberOrder = async (memberId: string, memberName: string) => {
-    Alert.alert(
-      'Clear Order',
-      `Clear order information for ${memberName}?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Clear',
-          onPress: async () => {
-            try {
-              console.log('🧹 Clearing order for member:', memberId);
-              
-              const { error } = await supabase
-                .from('members')
-                .update({ 
-                  address: null,
-                  updated_at: new Date().toISOString()
-                })
-                .eq('id', memberId);
-              
-              if (error) {
-                console.error('❌ Order clear failed:', error);
-                Alert.alert('Error', 'Failed to clear order');
-                return;
-              }
-              
-              // Update local state
-              setMembers(members.map(member => 
-                member.id === memberId 
-                  ? { ...member, has_order: false, order_info: undefined, address: undefined }
-                  : member
-              ));
-              
-              console.log('✅ Order cleared successfully');
-              Alert.alert('Success', 'Order cleared successfully');
-              
-            } catch (error) {
-              console.error('❌ Order clear error:', error);
-              Alert.alert('Error', 'Failed to clear order');
-            }
-          }
-        }
-      ]
-    );
+  const deleteMember = async (memberId: string) => {
+    try {
+      const { error } = await supabase
+        .from('members')
+        .delete()
+        .eq('id', memberId);
+      
+      if (error) {
+        console.error('Member deletion failed:', error);
+        return;
+      }
+      
+      // Update local state
+      setMembers(members.filter(member => member.id !== memberId));
+      
+    } catch (error) {
+      console.error('Member deletion error:', error);
+    }
   };
 
   const filteredMembers = members.filter(member =>
@@ -190,50 +104,26 @@ export default function Members() {
     member.phone.includes(searchQuery)
   );
 
-  const renderMemberItem = ({ item }: { item: AdminMember }) => (
+  const renderMemberItem = ({ item }: { item: Member }) => (
     <View style={styles.memberCard}>
-      <View style={styles.memberHeader}>
-        <View style={styles.memberInfo}>
-          <Text style={styles.memberName}>{item.first_name} {item.last_name}</Text>
-          <Text style={styles.memberUsername}>@{item.username}</Text>
-        </View>
-        {item.has_order && (
-          <View style={styles.orderBadge}>
-            <Text style={styles.orderBadgeText}>ORDER</Text>
-          </View>
-        )}
-      </View>
-      
-      <View style={styles.memberDetails}>
+      <View style={styles.memberInfo}>
+        <Text style={styles.memberName}>{item.first_name} {item.last_name}</Text>
+        <Text style={styles.memberUsername}>@{item.username}</Text>
         <Text style={styles.memberPhone}>📞 {item.phone}</Text>
+        {item.address && (
+          <Text style={styles.memberAddress}>📍 {item.address}</Text>
+        )}
         <Text style={styles.memberDate}>
           Joined: {new Date(item.created_at).toLocaleDateString()}
         </Text>
-        {item.order_info && (
-          <View style={styles.orderInfo}>
-            <Text style={styles.orderInfoTitle}>Current Order:</Text>
-            <Text style={styles.orderInfoText}>{item.order_info}</Text>
-          </View>
-        )}
       </View>
       
-      <View style={styles.memberActions}>
-        {item.has_order && (
-          <TouchableOpacity
-            style={[styles.actionButton, styles.clearButton]}
-            onPress={() => clearMemberOrder(item.id, `${item.first_name} ${item.last_name}`)}
-          >
-            <Text style={styles.actionButtonText}>CLEAR ORDER</Text>
-          </TouchableOpacity>
-        )}
-        
-        <TouchableOpacity
-          style={[styles.actionButton, styles.deleteButton]}
-          onPress={() => deleteMember(item.id, `${item.first_name} ${item.last_name}`)}
-        >
-          <Text style={styles.actionButtonText}>DELETE</Text>
-        </TouchableOpacity>
-      </View>
+      <TouchableOpacity
+        style={styles.deleteButton}
+        onPress={() => deleteMember(item.id)}
+      >
+        <Ionicons name="trash" size={20} color={bg} />
+      </TouchableOpacity>
     </View>
   );
 
@@ -272,8 +162,8 @@ export default function Members() {
           <Text style={styles.statLabel}>Total Members</Text>
         </View>
         <View style={styles.statItem}>
-          <Text style={styles.statNumber}>{members.filter(m => m.has_order).length}</Text>
-          <Text style={styles.statLabel}>With Orders</Text>
+          <Text style={styles.statNumber}>{filteredMembers.length}</Text>
+          <Text style={styles.statLabel}>Search Results</Text>
         </View>
       </View>
       
@@ -337,6 +227,8 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     fontFamily: 'VT323_400Regular',
     fontSize: 16,
+    borderWidth: 1,
+    borderColor: green,
   },
   statsContainer: {
     flexDirection: 'row',
@@ -360,10 +252,11 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   statLabel: {
-    color: '#ccc',
+    color: green,
     fontSize: 12,
     fontFamily: 'VT323_400Regular',
     marginTop: 5,
+    opacity: 0.7,
   },
   listContainer: {
     paddingHorizontal: 20,
@@ -376,94 +269,54 @@ const styles = StyleSheet.create({
     marginBottom: 15,
     borderWidth: 1,
     borderColor: green,
-  },
-  memberHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 10,
   },
   memberInfo: {
     flex: 1,
+    marginRight: 15,
   },
   memberName: {
     color: green,
     fontSize: 18,
     fontFamily: 'VT323_400Regular',
     fontWeight: 'bold',
+    marginBottom: 4,
   },
   memberUsername: {
-    color: '#ccc',
+    color: green,
     fontSize: 14,
     fontFamily: 'VT323_400Regular',
-  },
-  orderBadge: {
-    backgroundColor: '#FFA500',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  orderBadgeText: {
-    color: bg,
-    fontSize: 10,
-    fontFamily: 'VT323_400Regular',
-    fontWeight: 'bold',
-  },
-  memberDetails: {
-    marginBottom: 15,
+    opacity: 0.8,
+    marginBottom: 4,
   },
   memberPhone: {
-    color: '#ccc',
+    color: green,
     fontSize: 14,
     fontFamily: 'VT323_400Regular',
-    marginBottom: 5,
+    marginBottom: 4,
+  },
+  memberAddress: {
+    color: green,
+    fontSize: 14,
+    fontFamily: 'VT323_400Regular',
+    opacity: 0.7,
+    marginBottom: 4,
   },
   memberDate: {
-    color: '#666',
+    color: green,
     fontSize: 12,
     fontFamily: 'VT323_400Regular',
-  },
-  orderInfo: {
-    marginTop: 10,
-    padding: 10,
-    backgroundColor: '#001a00',
-    borderRadius: 5,
-    borderWidth: 1,
-    borderColor: '#FFA500',
-  },
-  orderInfoTitle: {
-    color: '#FFA500',
-    fontSize: 12,
-    fontFamily: 'VT323_400Regular',
-    fontWeight: 'bold',
-    marginBottom: 5,
-  },
-  orderInfoText: {
-    color: '#ccc',
-    fontSize: 11,
-    fontFamily: 'VT323_400Regular',
-  },
-  memberActions: {
-    flexDirection: 'row',
-    gap: 10,
-  },
-  actionButton: {
-    paddingHorizontal: 15,
-    paddingVertical: 8,
-    borderRadius: 5,
-    flex: 1,
-    alignItems: 'center',
-  },
-  clearButton: {
-    backgroundColor: '#FFA500',
+    opacity: 0.6,
+    marginTop: 4,
   },
   deleteButton: {
     backgroundColor: '#FF4444',
-  },
-  actionButtonText: {
-    color: bg,
-    fontSize: 12,
-    fontFamily: 'VT323_400Regular',
-    fontWeight: 'bold',
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

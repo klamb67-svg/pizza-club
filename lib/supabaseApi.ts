@@ -148,7 +148,7 @@ export const ordersApi = {
           *,
           members!inner(name),
           pizzas!inner(name),
-          time_slots!inner(start_time),
+          time_slots!inner(starts_at),
           nights!inner(date)
         `)
         .order('created_at', { ascending: false });
@@ -160,8 +160,7 @@ export const ordersApi = {
         ...order,
         member_name: order.members?.name,
         pizza_name: order.pizzas?.name,
-        time_slot_start: order.time_slots?.start_time,
-        time_slot_end: order.time_slots?.end_time,
+        time_slot_starts_at: order.time_slots?.starts_at,
         night_date: order.nights?.date,
         night_day: order.nights?.day_of_week,
         // 🔧 TODO: Add missing field mappings for member_phone, pizza_price when database schema is finalized
@@ -182,7 +181,7 @@ export const ordersApi = {
           *,
           members!inner(name),
           pizzas!inner(name),
-          time_slots!inner(start_time),
+          time_slots!inner(starts_at),
           nights!inner(date)
         `)
         .eq('status', status)
@@ -194,8 +193,7 @@ export const ordersApi = {
         ...order,
         member_name: order.members?.name,
         pizza_name: order.pizzas?.name,
-        time_slot_start: order.time_slots?.start_time,
-        time_slot_end: order.time_slots?.end_time,
+        time_slot_starts_at: order.time_slots?.starts_at,
         night_date: order.nights?.date,
         night_day: order.nights?.day_of_week,
         // 🔧 TODO: Add missing field mappings for member_phone, pizza_price when database schema is finalized
@@ -399,7 +397,7 @@ export const scheduleApi = {
         .from('time_slots')
         .select('*')
         .eq('night_id', nightId)
-        .order('start_time', { ascending: true });
+        .order('starts_at', { ascending: true });
 
       if (error) throw error;
       return data || [];
@@ -418,7 +416,7 @@ export const scheduleApi = {
         .select('*')
         .eq('night_id', nightId)
         .eq('is_available', true)
-        .order('start_time', { ascending: true });
+        .order('starts_at', { ascending: true });
 
       if (error) throw error;
       return data || [];

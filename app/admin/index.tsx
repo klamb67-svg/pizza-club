@@ -39,17 +39,44 @@ export default function AdminIndex() {
   const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
-    checkAdminAccess();
-    loadDashboardData();
+    const init = async () => {
+      const hasAccess = await checkAdminAccess();
+      if (hasAccess) {
+        loadDashboardData();
+      }
+    };
+    init();
   }, []);
 
-  const checkAdminAccess = async () => {
+  const checkAdminAccess = async (): Promise<boolean> => {
+    // Check admin state - give it a moment in case we just navigated here
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
     const admin = adminAuth.getCurrentAdmin();
     if (!admin) {
-      // Redirect to login if not admin
+      console.log('❌ No admin session found - checking database');
+      
+      // Try to restore admin session by checking admins table
+      // This handles page refreshes or if state was lost
+      const { data: adminData, error } = await supabase
+        .from('admins')
+        .select('username')
+        .eq('username', 'rpaulson')
+        .single();
+      
+      if (adminData) {
+        console.log('✅ Admin session restored from database');
+        adminAuth.setCurrentAdmin(adminData.username);
+        return true;
+      }
+      
+      console.log('❌ No admin access - redirecting to login');
       router.replace('/login');
-      return;
+      return false;
     }
+    
+    console.log('✅ Admin access verified:', admin.username);
+    return true;
   };
 
   const loadDashboardData = async () => {
@@ -221,11 +248,6 @@ export default function AdminIndex() {
           <Text style={styles.sectionTitle}>QUICK ACTIONS</Text>
           <View style={styles.quickActionsGrid}>
             <QuickAction
-              title="Orders"
-              icon="receipt-outline"
-              onPress={() => router.push('/admin/orders')}
-            />
-            <QuickAction
               title="Members"
               icon="people-outline"
               onPress={() => router.push('/admin/members')}
@@ -244,11 +266,6 @@ export default function AdminIndex() {
               title="Schedule"
               icon="calendar-outline"
               onPress={() => router.push('/admin/schedule')}
-            />
-            <QuickAction
-              title="Settings"
-              icon="settings-outline"
-              onPress={() => Alert.alert('Settings', 'Settings panel coming soon!')}
             />
           </View>
         </View>

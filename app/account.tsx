@@ -15,15 +15,21 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { supabase } from '../lib/supabase';
 import type { Member, UpdateMemberInput } from '../lib/supabaseTypes';
 import { useResponsiveValues } from '../lib/responsive';
+import BottomNav from '../components/BottomNav';
 
 const green = "#00FF66";
 const bg = "#001a00";
 const darkGray = "#1a1a1a";
 
 export default function Account() {
-  const { username } = useLocalSearchParams<{ username: string }>();
+  const params = useLocalSearchParams<{ username?: string | string[] }>();
   const router = useRouter();
   const responsive = useResponsiveValues();
+  
+  // Handle username param - can be string or array in Expo Router
+  const username = Array.isArray(params.username) 
+    ? params.username[0] 
+    : params.username;
   
   // State management
   const [member, setMember] = useState<Member | null>(null);
@@ -38,6 +44,7 @@ export default function Account() {
     email: '',
     phone: '',
     address: '',
+    password: '',
   });
 
   const isLoggedIn = !!username;
@@ -67,13 +74,14 @@ export default function Account() {
         Alert.alert('Error', 'Could not load profile data');
       } else {
         setMember(data);
-                setEditForm({
-                  first_name: data?.first_name || '',
-                  last_name: data?.last_name || '',
-                  email: '', // Email field removed from schema
-                  phone: data?.phone || '',
-                  address: data?.address || '',
-                });
+        setEditForm({
+          first_name: data?.first_name || '',
+          last_name: data?.last_name || '',
+          email: '',
+          phone: data?.phone || '',
+          address: data?.address || '',
+          password: '',
+        });
       }
     } catch (error) {
       console.error('Unexpected error:', error);
@@ -92,9 +100,10 @@ export default function Account() {
       setEditForm({
         first_name: member.first_name || '',
         last_name: member.last_name || '',
-        email: '', // Email field removed from schema
+        email: '',
         phone: member.phone || '',
         address: member.address || '',
+        password: '',
       });
     }
     setIsEditing(false);
@@ -106,13 +115,18 @@ export default function Account() {
     try {
       setSaving(true);
       
-      const updateData: UpdateMemberInput = {
+      const updateData: any = {
         first_name: editForm.first_name,
         last_name: editForm.last_name,
         email: editForm.email || undefined,
         phone: editForm.phone,
         address: editForm.address || undefined,
       };
+
+      // Only update password if user entered a new one
+      if (editForm.password.trim()) {
+        updateData.password_hash = editForm.password;
+      }
 
       // Update using username instead of id to avoid RLS issues
       const { data, error } = await supabase
@@ -135,6 +149,10 @@ export default function Account() {
 
       if (data) {
         setMember(data);
+        setEditForm({
+          ...editForm,
+          password: '',
+        });
         setIsEditing(false);
         Alert.alert('Success', 'Profile updated successfully');
       } else {
@@ -150,7 +168,6 @@ export default function Account() {
   };
 
   const handleLogout = () => {
-    // 🔧 TODO: implement logout functionality
     console.log('Logout clicked');
     router.push('/login');
   };
@@ -280,6 +297,25 @@ export default function Account() {
           </View>
         </View>
 
+        {/* Security Section - Only show when editing */}
+        {isEditing && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>SECURITY</Text>
+            <View style={styles.card}>
+              <View style={styles.field}>
+                <Text style={styles.fieldLabel}>New Password</Text>
+                <TextInput
+                  style={styles.input}
+                  value={editForm.password}
+                  onChangeText={(text) => setEditForm({...editForm, password: text})}
+                  placeholder="Leave blank to keep current"
+                  placeholderTextColor="rgba(0, 255, 102, 0.5)"
+                />
+                <Text style={styles.fieldHint}>Only fill this if you want to change your password</Text>
+              </View>
+            </View>
+          </View>
+        )}
 
         {/* Action Buttons */}
         <View style={styles.buttonContainer}>
@@ -316,6 +352,7 @@ export default function Account() {
           )}
         </View>
       </ScrollView>
+      <BottomNav currentPage="account" username={username} />
     </SafeAreaView>
   );
 }
@@ -397,6 +434,14 @@ const createStyles = (responsive: any) => StyleSheet.create({
     fontFamily: 'VT323_400Regular',
     fontWeight: 'bold',
   },
+  fieldHint: {
+    color: green,
+    fontSize: responsive.fontSize.sm,
+    fontFamily: 'VT323_400Regular',
+    opacity: 0.6,
+    marginTop: 4,
+    fontStyle: 'italic',
+  },
   statusBadge: {
     paddingHorizontal: responsive.padding.md,
     paddingVertical: responsive.padding.xs,
@@ -474,4 +519,3 @@ const createStyles = (responsive: any) => StyleSheet.create({
     marginTop: responsive.margin.md,
   },
 });
-

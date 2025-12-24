@@ -17,35 +17,57 @@ const green = "#00FF66";
 const bg = "#001a00";
 const darkGray = "#1a1a1a";
 
-// KDS Order interface
+// KDS Order interface - matches actual database structure
 interface KDSOrder {
-  id: string;
-  order_id: string;
+  id: number;
   member_name: string;
+  phone: string;
   pizza_name: string;
-  pizza_price: number;
   time_slot: string;
   date: string;
-  status: 'pending' | 'in_progress' | 'completed' | 'cancelled';
-  special_instructions?: string;
+  status: 'pending' | 'preparing' | 'ready' | 'picked_up' | 'cancelled';
   created_at: string;
-  estimated_time?: number; // minutes
+  estimated_time: number;
 }
 
 export default function KitchenDisplaySystem() {
   const [orders, setOrders] = useState<KDSOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [selectedView, setSelectedView] = useState<'pending' | 'in_progress' | 'all'>('pending');
+  const [selectedView, setSelectedView] = useState<'pending' | 'preparing' | 'ready' | 'all'>('pending');
 
   useEffect(() => {
-    // Check admin access
     checkAdminAccess();
     loadOrders();
     
-    // Auto-refresh every 30 seconds
-    const interval = setInterval(loadOrders, 30000);
-    return () => clearInterval(interval);
+    // Set up real-time subscription
+    const subscription = supabase
+      .channel('kds-orders')
+      .on(
+        'postgres_changes',
+        {
+          event: '*', // Listen to INSERT, UPDATE, DELETE
+          schema: 'public',
+          table: 'orders'
+        },
+        (payload) => {
+          console.log('🔔 Real-time update:', payload.eventType);
+          loadOrders(); // Reload orders on any change
+        }
+      )
+      .subscribe();
+
+    // Set up 30-second auto-refresh as backup
+    const intervalId = setInterval(() => {
+      console.log('🔄 Auto-refreshing KDS orders (30s interval)');
+      loadOrders();
+    }, 30000); // 30 seconds
+
+    // Cleanup subscription and interval on unmount
+    return () => {
+      supabase.removeChannel(subscription);
+      clearInterval(intervalId);
+    };
   }, []);
 
   const checkAdminAccess = async () => {
@@ -59,69 +81,81 @@ export default function KitchenDisplaySystem() {
   const loadOrders = async () => {
     try {
       setLoading(true);
-      console.log('🍕 Loading KDS orders...');
+      console.log('🍕 Loading KDS orders from orders table...');
       
-      // Get all members with order information
-      const { data: members, error } = await supabase
-        .from('members')
-        .select('id, first_name, last_name, phone, address, created_at')
-        .not('address', 'is', null)
-        .order('created_at', { ascending: false });
+      // Query orders table with JOINs to get all related data
+      const { data, error } = await supabase
+        .from('orders')
+        .select(`
+          id,
+          status,
+          created_at,
+          pickup_date,
+          pickup_time,
+          members!inner(first_name, last_name, phone),
+          pizzas!inner(name, preparation_time)
+        `)
+        .not('status', 'eq', 'cancelled')
+        .order('created_at', { ascending: true });
       
       if (error) {
         console.error('❌ Error loading KDS orders:', error);
+        Alert.alert('Error', 'Failed to load orders');
         return;
       }
       
-      // Parse order information from address field
-      const kdsOrders: KDSOrder[] = [];
-      
-      members?.forEach(member => {
-        if (member.address && member.address.includes('ORDER_')) {
-          // Parse order information from address field
-          const orderMatch = member.address.match(/ORDER_(\d+): (.+) - \$(\d+\.\d+) at (.+) on (.+)/);
-          
-          if (orderMatch) {
-            const [, orderId, pizzaName, price, timeSlot, date] = orderMatch;
-            
-            // Determine status based on address content
-            let status: KDSOrder['status'] = 'pending';
-            if (member.address.includes('STATUS_in_progress_')) {
-              status = 'in_progress';
-            } else if (member.address.includes('STATUS_completed_')) {
-              status = 'completed';
-            } else if (member.address.includes('STATUS_cancelled_')) {
-              status = 'cancelled';
+      // Transform database response to KDSOrder format
+      const kdsOrders: KDSOrder[] = (data || [])
+        .filter((order: any) => {
+          // Filter out any orders that don't have required data
+          return order && order.id && order.members && order.pizzas;
+        })
+        .map((order: any) => {
+          // Format time from pickup_time (HH:MM:SS or HH:MM)
+          let timeSlot = '6:00 PM'; // fallback
+          if (order.pickup_time) {
+            const timeStr = order.pickup_time;
+            // Handle HH:MM:SS or HH:MM format
+            const [hoursStr, minutesStr] = timeStr.split(':');
+            if (hoursStr && minutesStr) {
+              const hours = parseInt(hoursStr);
+              const minutes = minutesStr.padStart(2, '0');
+              const period = hours >= 12 ? 'PM' : 'AM';
+              const displayHours = hours % 12 || 12;
+              timeSlot = `${displayHours}:${minutes} ${period}`;
             }
-            
-            // Calculate estimated prep time based on pizza type
-            let estimatedTime = 15; // default
-            if (pizzaName.includes('Hawaiian')) estimatedTime = 18;
-            if (pizzaName.includes('Meatball')) estimatedTime = 20;
-            if (pizzaName.includes('Pepperoni')) estimatedTime = 16;
-            
-            kdsOrders.push({
-              id: member.id,
-              order_id: orderId,
-              member_name: `${member.first_name} ${member.last_name}`,
-              pizza_name: pizzaName,
-              pizza_price: parseFloat(price),
-              time_slot: timeSlot,
-              date: date,
-              status: status,
-              special_instructions: member.address.includes('Extra') ? 'Extra cheese' : undefined,
-              created_at: member.created_at,
-              estimated_time: estimatedTime
+          }
+          
+          // Format date from pickup_date (YYYY-MM-DD)
+          let formattedDate = 'N/A'; // fallback
+          if (order.pickup_date) {
+            const dateObj = new Date(order.pickup_date + 'T12:00:00');
+            formattedDate = dateObj.toLocaleDateString('en-US', {
+              weekday: 'short',
+              month: 'numeric',
+              day: 'numeric'
             });
           }
-        }
-      });
+          
+          return {
+            id: order.id,
+            member_name: `${order.members?.first_name || ''} ${order.members?.last_name || ''}`.trim() || 'Unknown',
+            phone: order.members?.phone || '',
+            pizza_name: order.pizzas?.name || 'Unknown Pizza',
+            time_slot: timeSlot,
+            date: formattedDate,
+            status: order.status,
+            created_at: order.created_at,
+            estimated_time: order.pizzas?.preparation_time || 15
+          };
+        });
       
       console.log('✅ Loaded KDS orders:', kdsOrders.length);
       setOrders(kdsOrders);
       
     } catch (error) {
       console.error('❌ Error loading KDS orders:', error);
+      Alert.alert('Error', 'Failed to load orders');
     } finally {
       setLoading(false);
     }
@@ -133,45 +167,71 @@ export default function KitchenDisplaySystem() {
     setRefreshing(false);
   };
 
-  const updateOrderStatus = async (orderId: string, newStatus: KDSOrder['status']) => {
+  const updateOrderStatus = async (orderId: number, newStatus: KDSOrder['status']) => {
     try {
-      console.log('🔄 Updating KDS order status:', orderId, 'to', newStatus);
+      console.log('🔄 Updating order status:', orderId, 'to', newStatus);
       
-      // Update the member's address field to reflect status
+      // Update the orders table directly
       const { error } = await supabase
-        .from('members')
+        .from('orders')
         .update({ 
-          address: `STATUS_${newStatus}_${orderId}`,
-          updated_at: new Date().toISOString()
+          status: newStatus
         })
         .eq('id', orderId);
       
       if (error) {
-        console.error('❌ KDS status update failed:', error);
+        console.error('❌ Status update failed:', error);
         Alert.alert('Error', 'Failed to update order status');
         return;
       }
       
-      // Update local state
+      // Update local state immediately for snappy UI
       setOrders(orders.map(order => 
         order.id === orderId 
           ? { ...order, status: newStatus }
           : order
       ));
       
-      console.log('✅ KDS order status updated successfully');
+      console.log('✅ Order status updated successfully');
       
     } catch (error) {
-      console.error('❌ KDS status update error:', error);
+      console.error('❌ Status update error:', error);
       Alert.alert('Error', 'Failed to update order status');
+    }
+  };
+
+  const deleteOrder = async (orderId: number) => {
+    try {
+      console.log('🗑️ Deleting order:', orderId);
+      
+      const { error } = await supabase
+        .from('orders')
+        .delete()
+        .eq('id', orderId);
+      
+      if (error) {
+        console.error('❌ Order deletion failed:', error);
+        Alert.alert('Error', 'Failed to delete order');
+        return;
+      }
+      
+      console.log('✅ Order deleted successfully');
+      
+      // Reload orders to ensure fresh data
+      await loadOrders();
+      
+    } catch (error) {
+      console.error('❌ Order deletion error:', error);
+      Alert.alert('Error', 'Failed to delete order');
     }
   };
 
   const getStatusColor = (status: KDSOrder['status']) => {
     switch (status) {
       case 'pending': return '#FFA500';
-      case 'in_progress': return '#00BFFF';
-      case 'completed': return green;
+      case 'preparing': return '#00BFFF';
+      case 'ready': return green;
+      case 'picked_up': return '#888';
       case 'cancelled': return '#FF4444';
       default: return '#666';
     }
@@ -180,10 +240,22 @@ export default function KitchenDisplaySystem() {
   const getStatusIcon = (status: KDSOrder['status']) => {
     switch (status) {
       case 'pending': return 'time-outline';
-      case 'in_progress': return 'play-outline';
-      case 'completed': return 'checkmark-circle-outline';
+      case 'preparing': return 'flame-outline';
+      case 'ready': return 'checkmark-circle-outline';
+      case 'picked_up': return 'bag-check-outline';
       case 'cancelled': return 'close-circle-outline';
       default: return 'help-outline';
+    }
+  };
+
+  const getStatusLabel = (status: KDSOrder['status']) => {
+    switch (status) {
+      case 'pending': return 'PENDING';
+      case 'preparing': return 'PREPARING';
+      case 'ready': return 'READY';
+      case 'picked_up': return 'PICKED UP';
+      case 'cancelled': return 'CANCELLED';
+      default: return status.toUpperCase();
     }
   };
 
@@ -196,32 +268,33 @@ export default function KitchenDisplaySystem() {
     <View style={[styles.orderCard, { borderColor: getStatusColor(item.status) }]}>
       <View style={styles.orderHeader}>
         <View style={styles.orderIdContainer}>
-          <Text style={styles.orderId}>#{item.order_id}</Text>
-          <Text style={styles.orderTime}>{item.time_slot}</Text>
+          <Text style={styles.orderId}>#{item.id}</Text>
+          <Text style={styles.orderTime}>{item.time_slot} • {item.date}</Text>
         </View>
-        <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.status) }]}>
-          <Ionicons 
-            name={getStatusIcon(item.status)} 
-            size={16} 
-            color={bg} 
-          />
-          <Text style={styles.statusText}>{item.status.toUpperCase()}</Text>
+        <View style={styles.headerRight}>
+          <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.status) }]}>
+            <Ionicons 
+              name={getStatusIcon(item.status)} 
+              size={16} 
+              color={bg} 
+            />
+            <Text style={styles.statusText}>{getStatusLabel(item.status)}</Text>
+          </View>
+          <TouchableOpacity
+            style={styles.deleteButton}
+            onPress={() => deleteOrder(item.id)}
+          >
+            <Ionicons name="trash" size={20} color="#FF4444" />
+          </TouchableOpacity>
         </View>
       </View>
       
       <View style={styles.orderContent}>
         <Text style={styles.pizzaName}>{item.pizza_name}</Text>
         <Text style={styles.memberName}>for {item.member_name}</Text>
-        
-        {item.special_instructions && (
-          <View style={styles.specialInstructionsContainer}>
-            <Text style={styles.specialInstructionsLabel}>SPECIAL:</Text>
-            <Text style={styles.specialInstructionsText}>{item.special_instructions}</Text>
-          </View>
-        )}
+        {item.phone ? <Text style={styles.phoneNumber}>{item.phone}</Text> : null}
         
         <View style={styles.orderDetails}>
-          <Text style={styles.price}>${item.pizza_price}</Text>
           <Text style={styles.estimatedTime}>~{item.estimated_time} min</Text>
         </View>
       </View>
@@ -230,34 +303,44 @@ export default function KitchenDisplaySystem() {
         {item.status === 'pending' && (
           <TouchableOpacity
             style={[styles.actionButton, styles.startButton]}
-            onPress={() => updateOrderStatus(item.id, 'in_progress')}
+            onPress={() => updateOrderStatus(item.id, 'preparing')}
           >
-            <Ionicons name="play" size={16} color={bg} />
-            <Text style={styles.actionButtonText}>START</Text>
+            <Ionicons name="flame" size={16} color={bg} />
+            <Text style={styles.actionButtonText}>START PREPARING</Text>
           </TouchableOpacity>
         )}
         
-        {item.status === 'in_progress' && (
+        {item.status === 'preparing' && (
           <TouchableOpacity
-            style={[styles.actionButton, styles.completeButton]}
-            onPress={() => updateOrderStatus(item.id, 'completed')}
+            style={[styles.actionButton, styles.readyButton]}
+            onPress={() => updateOrderStatus(item.id, 'ready')}
           >
             <Ionicons name="checkmark" size={16} color={bg} />
-            <Text style={styles.actionButtonText}>COMPLETE</Text>
+            <Text style={styles.actionButtonText}>MARK READY</Text>
           </TouchableOpacity>
         )}
         
-        {item.status === 'completed' && (
+        {item.status === 'ready' && (
+          <TouchableOpacity
+            style={[styles.actionButton, styles.pickedUpButton]}
+            onPress={() => updateOrderStatus(item.id, 'picked_up')}
+          >
+            <Ionicons name="bag-check" size={16} color={bg} />
+            <Text style={styles.actionButtonText}>PICKED UP</Text>
+          </TouchableOpacity>
+        )}
+        
+        {item.status === 'picked_up' && (
           <View style={styles.completedContainer}>
-            <Ionicons name="checkmark-circle" size={20} color={green} />
-            <Text style={styles.completedText}>READY FOR PICKUP</Text>
+            <Ionicons name="checkmark-done-circle" size={20} color="#888" />
+            <Text style={styles.completedText}>ORDER COMPLETE</Text>
           </View>
         )}
       </View>
     </View>
   );
 
-  if (loading) {
+  if (loading && orders.length === 0) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingContainer}>
@@ -279,7 +362,8 @@ export default function KitchenDisplaySystem() {
       <View style={styles.viewFilters}>
         {[
           { key: 'pending', label: 'PENDING', count: orders.filter(o => o.status === 'pending').length },
-          { key: 'in_progress', label: 'IN PROGRESS', count: orders.filter(o => o.status === 'in_progress').length },
+          { key: 'preparing', label: 'PREPARING', count: orders.filter(o => o.status === 'preparing').length },
+          { key: 'ready', label: 'READY', count: orders.filter(o => o.status === 'ready').length },
           { key: 'all', label: 'ALL', count: orders.length }
         ].map(view => (
           <TouchableOpacity
@@ -300,20 +384,28 @@ export default function KitchenDisplaySystem() {
         ))}
       </View>
       
-      <FlatList
-        data={filteredOrders}
-        renderItem={renderOrderItem}
-        keyExtractor={(item) => item.id}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            tintColor={green}
-          />
-        }
-        contentContainerStyle={styles.listContainer}
-        showsVerticalScrollIndicator={false}
-      />
+      {filteredOrders.length === 0 ? (
+        <View style={styles.emptyContainer}>
+          <Ionicons name="pizza-outline" size={64} color={green} />
+          <Text style={styles.emptyText}>No {selectedView === 'all' ? '' : selectedView} orders</Text>
+          <Text style={styles.emptySubtext}>Orders will appear here in real-time</Text>
+        </View>
+      ) : (
+        <FlatList
+          data={filteredOrders}
+          renderItem={renderOrderItem}
+          keyExtractor={(item) => item.id.toString()}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor={green}
+            />
+          }
+          contentContainerStyle={styles.listContainer}
+          showsVerticalScrollIndicator={false}
+        />
+      )}
     </SafeAreaView>
   );
 }
@@ -350,14 +442,14 @@ const styles = StyleSheet.create({
   },
   viewFilters: {
     flexDirection: 'row',
-    paddingHorizontal: 20,
+    paddingHorizontal: 10,
     paddingVertical: 15,
-    gap: 10,
+    gap: 5,
   },
   viewFilter: {
     flex: 1,
     paddingVertical: 10,
-    paddingHorizontal: 15,
+    paddingHorizontal: 8,
     borderRadius: 8,
     borderWidth: 2,
     borderColor: green,
@@ -368,7 +460,7 @@ const styles = StyleSheet.create({
   },
   viewFilterText: {
     color: green,
-    fontSize: 14,
+    fontSize: 12,
     fontFamily: 'VT323_400Regular',
     fontWeight: 'bold',
   },
@@ -378,6 +470,24 @@ const styles = StyleSheet.create({
   listContainer: {
     paddingHorizontal: 20,
     paddingBottom: 20,
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 40,
+  },
+  emptyText: {
+    color: green,
+    fontSize: 24,
+    fontFamily: 'VT323_400Regular',
+    marginTop: 20,
+  },
+  emptySubtext: {
+    color: '#666',
+    fontSize: 16,
+    fontFamily: 'VT323_400Regular',
+    marginTop: 10,
   },
   orderCard: {
     backgroundColor: darkGray,
@@ -399,6 +509,18 @@ const styles = StyleSheet.create({
   },
   orderIdContainer: {
     flex: 1,
+  },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  deleteButton: {
+    padding: 8,
+    borderRadius: 8,
+    backgroundColor: 'rgba(255, 68, 68, 0.1)',
+    borderWidth: 1,
+    borderColor: '#FF4444',
   },
   orderId: {
     color: green,
@@ -439,24 +561,9 @@ const styles = StyleSheet.create({
     color: '#ccc',
     fontSize: 16,
     fontFamily: 'VT323_400Regular',
-    marginBottom: 10,
   },
-  specialInstructionsContainer: {
-    backgroundColor: '#001a00',
-    padding: 10,
-    borderRadius: 8,
-    marginBottom: 10,
-    borderWidth: 1,
-    borderColor: '#FFA500',
-  },
-  specialInstructionsLabel: {
-    color: '#FFA500',
-    fontSize: 12,
-    fontFamily: 'VT323_400Regular',
-    fontWeight: 'bold',
-  },
-  specialInstructionsText: {
-    color: '#ccc',
+  phoneNumber: {
+    color: '#888',
     fontSize: 14,
     fontFamily: 'VT323_400Regular',
     marginTop: 2,
@@ -465,6 +572,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    marginTop: 10,
   },
   price: {
     color: green,
@@ -490,9 +598,12 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   startButton: {
+    backgroundColor: '#FFA500',
+  },
+  readyButton: {
     backgroundColor: '#00BFFF',
   },
-  completeButton: {
+  pickedUpButton: {
     backgroundColor: green,
   },
   actionButtonText: {
@@ -509,7 +620,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   completedText: {
-    color: green,
+    color: '#888',
     fontSize: 14,
     fontFamily: 'VT323_400Regular',
     fontWeight: 'bold',

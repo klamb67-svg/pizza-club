@@ -12,6 +12,7 @@ import { useRouter, useLocalSearchParams } from "expo-router";
 import { useResponsiveValues } from "../lib/responsive";
 import { handleAccountNavigation } from "../lib/authUtils";
 import { orderService, OrderData } from "../lib/orderService";
+import { supabase } from "../lib/supabase";
 
 export default function OrderConfirmation() {
   const router = useRouter();
@@ -19,6 +20,7 @@ export default function OrderConfirmation() {
   const [orderCreated, setOrderCreated] = useState(false);
   const [orderId, setOrderId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   
   // Get order data from navigation params
   const params = useLocalSearchParams();
@@ -27,6 +29,8 @@ export default function OrderConfirmation() {
   const time = Array.isArray(params.time) ? params.time[0] : params.time || "6:00 PM";
   const date = Array.isArray(params.date) ? params.date[0] : params.date || new Date().toLocaleDateString();
   const phone = Array.isArray(params.phone) ? params.phone[0] : params.phone || "555-123-4567";
+  const username = Array.isArray(params.username) ? params.username[0] : params.username;
+  const timeSlotId = Array.isArray(params.timeSlotId) ? params.timeSlotId[0] : params.timeSlotId;
 
   // Extract pizza price from pizza name (basic parsing)
   const pizzaPrice = pizza.includes('Margherita') ? 18.99 : 
@@ -41,13 +45,65 @@ export default function OrderConfirmation() {
     try {
       setLoading(true);
       
+      console.log('🔍 Starting order creation...', { username, name, pizza, phone, timeSlotId });
+      
+      // Look up member by username to get actual member_id and phone
+      let memberId: string | number = "";
+      let memberPhone: string = phone;
+      
+      if (username) {
+        console.log('🔍 Looking up member by username:', username);
+        const { data: member, error: memberError } = await supabase
+          .from('members')
+          .select('id, phone')
+          .eq('username', username)
+          .single();
+        
+        if (!memberError && member) {
+          memberId = member.id;
+          memberPhone = member.phone || phone;
+          console.log('✅ Found member:', { memberId, memberPhone, memberIdType: typeof memberId });
+      } else {
+        const errorMsg = `Could not find your member account. Error: ${memberError?.message || 'Unknown error'}`;
+        console.error('❌ Member lookup failed:', memberError);
+        setErrorMessage(errorMsg);
+        setLoading(false);
+        return;
+      }
+    } else {
+      const errorMsg = 'You must be logged in to place an order. Please log in and try again.';
+      console.error('❌ No username provided - cannot create order');
+      setErrorMessage(errorMsg);
+      setLoading(false);
+      return;
+    }
+    
+    // Validate we have required member data
+    if (!memberId || !memberPhone || memberPhone === "555-123-4567") {
+      const errorMsg = `Missing member information. Member ID: ${memberId ? 'found' : 'missing'}, Phone: ${memberPhone || 'missing'}`;
+      console.error('❌ Invalid member data:', { memberId, memberPhone });
+      setErrorMessage(errorMsg);
+      setLoading(false);
+      return;
+    }
+
+    // Validate we have time slot ID
+    if (!timeSlotId) {
+      const errorMsg = 'Time slot ID is missing. Please go back to the menu and select a time slot.';
+      console.error('❌ No timeSlotId provided');
+      setErrorMessage(errorMsg);
+      setLoading(false);
+      return;
+    }
+      
       const orderData: OrderData = {
-        member_id: "69149187-94af-4892-b24c-f169bac1e825", // Use actual member UUID
+        member_id: String(memberId),
         pizza_name: pizza,
         pizza_price: pizzaPrice,
         time_slot: time,
+        time_slot_id: timeSlotId, // NEW: Pass the time slot ID directly
         date: date,
-        phone: phone,
+        phone: memberPhone,
         special_instructions: `Order for ${name}`
       };
 
@@ -55,17 +111,23 @@ export default function OrderConfirmation() {
       
       const result = await orderService.createOrder(orderData);
       
+      console.log('📋 Order service result:', result);
+      
       if (result.success && result.orderId) {
         setOrderCreated(true);
         setOrderId(result.orderId);
+        setErrorMessage(null);
         console.log('✅ Order created successfully:', result.orderId);
       } else {
+        const errorMsg = result.error || 'Failed to create order';
         console.error('❌ Order creation failed:', result.error);
-        Alert.alert('Order Error', result.error || 'Failed to create order');
+        console.error('Full error details:', { result, orderData });
+        setErrorMessage(errorMsg);
       }
-    } catch (error) {
+    } catch (error: any) {
+      const errorMsg = error?.message || 'Failed to create order';
       console.error('❌ Order creation error:', error);
-      Alert.alert('Error', 'Failed to create order');
+      setErrorMessage(errorMsg);
     } finally {
       setLoading(false);
     }
@@ -88,6 +150,14 @@ export default function OrderConfirmation() {
       <Text style={styles.message}>
         {orderCreated ? '✅ Your order has been placed!' : '❌ Order failed to process'}
       </Text>
+      
+      {/* Error message display */}
+      {errorMessage && (
+        <View style={styles.errorBox}>
+          <Text style={styles.errorText}>ERROR:</Text>
+          <Text style={styles.errorDetails}>{errorMessage}</Text>
+        </View>
+      )}
 
       {orderCreated && orderId && (
         <View style={styles.orderIdCard}>
@@ -141,14 +211,14 @@ export default function OrderConfirmation() {
         <View style={styles.buttonRow}>
           <TouchableOpacity
             style={styles.menuButton}
-            onPress={() => handleAccountNavigation(router, name)}
+            onPress={() => handleAccountNavigation(router, username)}
           >
             <Text style={styles.menuText}>Account</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             style={styles.menuButton}
-            onPress={() => router.push("/history")}
+            onPress={() => router.push({ pathname: "/history", params: username ? { username } : undefined })}
           >
             <Text style={styles.menuText}>History</Text>
           </TouchableOpacity>
@@ -157,14 +227,14 @@ export default function OrderConfirmation() {
         <View style={styles.buttonRow}>
           <TouchableOpacity
             style={styles.menuButton}
-            onPress={() => router.push("/contact")}
+            onPress={() => router.push({ pathname: "/contact", params: username ? { username } : undefined })}
           >
             <Text style={styles.menuText}>Contact</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             style={styles.menuButton}
-            onPress={() => router.push("/about")}
+            onPress={() => router.push({ pathname: "/about", params: username ? { username } : undefined })}
           >
             <Text style={styles.menuText}>About</Text>
           </TouchableOpacity>
@@ -215,6 +285,32 @@ const createStyles = (responsive: any) => StyleSheet.create({
     fontFamily: "VT323_400Regular",
     textAlign: "center",
     fontWeight: "bold",
+  },
+  errorBox: {
+    backgroundColor: "#1a0000",
+    borderWidth: 2,
+    borderColor: "#ff6666",
+    padding: 16,
+    marginBottom: responsive.margin.md,
+    borderRadius: 4,
+    width: "100%",
+    maxWidth: responsive.isMobile ? 320 : responsive.isTablet ? 400 : 450,
+  },
+  errorText: {
+    fontSize: responsive.fontSize.lg,
+    color: "#ff6666",
+    fontFamily: "VT323_400Regular",
+    fontWeight: "bold",
+    marginBottom: 8,
+    textShadowColor: "#ff0000",
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 8,
+  },
+  errorDetails: {
+    fontSize: responsive.fontSize.md,
+    color: "#ff9999",
+    fontFamily: "VT323_400Regular",
+    lineHeight: 20,
   },
   orderCard: {
     width: "100%",
@@ -304,3 +400,4 @@ const createStyles = (responsive: any) => StyleSheet.create({
     textAlign: "center",
   },
 });
+

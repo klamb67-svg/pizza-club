@@ -1,0 +1,491 @@
+🍕 PIZZA CLUB APP - COMPLETE TECHNICAL SUMMARY
+================================================
+
+📅 Last Updated: January 2025
+🎯 Status: Active Development - Time Slot Availability Fix In Progress
+👤 Primary Developer: Cursor AI Assistant
+
+================================================================================
+1. PROJECT OVERVIEW
+================================================================================
+
+1.1 What Is This App?
+---------------------
+Pizza Dojo is a secret society pizza club ordering application with a retro/cyberpunk aesthetic. 
+The app operates exclusively on Friday & Saturday nights, featuring a neon-lit digital underground theme 
+with VT323 monospace font and green (#00FF66) on dark background (#001a00).
+
+1.2 Core Purpose
+----------------
+- Members-only pizza ordering system
+- Time slot-based pickup scheduling (1 order per 15-minute slot)
+- Admin panel for order management and kitchen operations
+- Retro terminal/Matrix-style UI design
+
+================================================================================
+2. TECH STACK
+================================================================================
+
+2.1 Frontend Framework
+----------------------
+- React Native 0.81.4 - Cross-platform mobile framework
+- Expo 54.0.8 - Development platform and tooling
+- Expo Router 6.0.6 - File-based routing system
+- React 19.1.0 - UI library
+- TypeScript 5.8.3 - Type safety
+
+2.2 Backend & Database
+-----------------------
+- Supabase - PostgreSQL database + Auth + Storage
+- Row Level Security (RLS) - Database security policies
+- Supabase JS Client 2.74.0 - Database client library
+
+2.3 UI/UX Libraries
+-------------------
+- Expo Linear Gradient - Gradient overlays
+- Expo Image - Optimized image loading
+- VT323 Font - Retro monospace font
+- React Navigation - Navigation system
+
+2.4 Development Tools
+---------------------
+- Playwright - End-to-end testing
+- ESLint - Code linting
+- TSX - TypeScript execution
+
+================================================================================
+3. ARCHITECTURE
+================================================================================
+
+3.1 Application Structure
+-------------------------
+pizza-club/
+├── app/                    # Expo Router pages (file-based routing)
+│   ├── index.tsx          # Landing page
+│   ├── login.tsx          # Member login
+│   ├── signup.tsx         # New member registration
+│   ├── frontdoor.tsx      # Welcome screen
+│   ├── menu.tsx           # Pizza selection + time slot booking
+│   ├── ticket.tsx         # Order confirmation screen
+│   ├── orderConfirmation.tsx  # Final order confirmation
+│   ├── account.tsx         # Member profile
+│   ├── history.tsx         # Order history
+│   ├── admin/             # Admin panel routes
+│   │   ├── orders.tsx     # Order management
+│   │   ├── members.tsx    # Member management
+│   │   ├── menu.tsx       # Menu management
+│   │   ├── schedule.tsx   # Time slot management
+│   │   └── kds.tsx        # Kitchen Display System
+│   └── _layout.tsx         # Root layout
+├── lib/                    # Core business logic
+│   ├── supabase.ts        # Supabase client initialization
+│   ├── supabaseApi.ts     # Database API functions
+│   ├── supabaseTypes.ts   # TypeScript type definitions
+│   ├── supabaseAdmin.ts   # Admin client (bypasses RLS)
+│   ├── orderService.ts    # Order creation + SMS logic
+│   ├── authUtils.ts       # Authentication utilities
+│   └── responsive.ts      # Responsive design utilities
+├── components/             # Reusable UI components
+│   ├── BottomNav.tsx      # Navigation component
+│   └── ui/                # UI primitives
+├── scripts/                # Database setup & utilities
+│   ├── populate-schedule.ts  # Create nights & time slots
+│   └── setup-database.ts     # Database schema setup
+└── constants/              # App constants
+    ├── Colors.ts          # Color palette
+    └── TerminalStyles.ts  # Styling constants
+
+3.2 Data Flow Architecture
+--------------------------
+1. User Input (React Native Components)
+   ↓
+2. Business Logic (lib/orderService.ts, lib/supabaseApi.ts)
+   ↓
+3. Supabase Client (lib/supabase.ts)
+   ↓
+4. PostgreSQL Database (with RLS policies)
+   ↓
+5. Response → UI Update
+
+================================================================================
+4. DATABASE SCHEMA
+================================================================================
+
+4.1 Core Tables
+---------------
+
+MEMBERS TABLE
+Column          Type              Description
+id              number (PK)      Primary key
+first_name      string            Member first name
+last_name       string            Member last name
+username        string (unique)   Generated from name (e.g., "RobertP")
+phone           string            Phone number for SMS
+address         string (optional) Member address
+password_hash   string            Hashed password
+created_at      timestamp         Creation timestamp
+updated_at      timestamp         Last update timestamp
+
+ORDERS TABLE
+Column              Type              Description
+id                  number (PK)      Primary key
+member_id           number (FK)      Foreign key to members
+pizza_id            number (FK)      Foreign key to pizzas
+time_slot_id        string (FK, UUID) Foreign key to time_slots
+night_id            string (FK, UUID) Foreign key to nights
+status              enum              'pending' | 'in_progress' | 'completed' | 'cancelled'
+quantity            number            Number of pizzas
+total_price         number            Order total
+special_instructions string (optional) Customer notes
+notes               string (optional) Internal notes
+created_at          timestamp         Creation timestamp
+updated_at          timestamp         Last update timestamp
+
+TIME_SLOTS TABLE
+Column          Type              Description
+id              string (PK, UUID) Primary key
+night_id        string (FK, UUID) Foreign key to nights
+starts_at       timestamptz       Slot start time (ISO timestamp)
+is_available    boolean           Whether slot is available
+max_orders      number            Maximum orders per slot (default: 1)
+current_orders  number            Current number of orders (default: 0)
+created_at      timestamptz       Creation timestamp
+
+NIGHTS TABLE
+Column          Type              Description
+id              string (PK, UUID) Primary key
+date            date              Night date (YYYY-MM-DD)
+day_of_week     string            'Friday' | 'Saturday'
+is_active       boolean           Whether night is active
+max_capacity    number            Maximum capacity for the night
+start_time      time              Night start time (HH:MM)
+end_time        time              Night end time (HH:MM)
+notes           string (optional) Internal notes
+created_at      timestamp         Creation timestamp
+updated_at      timestamp         Last update timestamp
+
+PIZZAS TABLE
+Column            Type              Description
+id                number (PK)      Primary key
+name              string            Pizza name
+description       string            Pizza description
+price             number            Pizza price
+image_url         string (optional) Pizza image URL
+available         boolean           Whether pizza is available
+category          enum              'classic' | 'specialty' | 'veggie' | 'meat_lovers'
+ingredients       string[]          Array of ingredients
+size_options      enum[]            ['small' | 'medium' | 'large']
+is_featured       boolean           Featured pizza flag
+preparation_time  number            Prep time in minutes
+created_at        timestamp         Creation timestamp
+updated_at        timestamp         Last update timestamp
+
+4.2 Row Level Security (RLS)
+----------------------------
+All tables have RLS policies enabled. Key policies:
+- Members: Allow anonymous signup, authenticated read, public profile updates
+- Orders: Members can create their own orders, read their own orders
+- Time Slots: Public read for availability, admin write
+- Nights: Public read for active nights, admin write
+
+================================================================================
+5. USER FLOWS
+================================================================================
+
+5.1 New Member Flow
+-------------------
+1. Landing Page (index.tsx)
+   ↓ User clicks "ENTER"
+2. Login Page (login.tsx) - Enter full name
+   ↓ System converts to username, checks database
+3. Signup Page (signup.tsx) - New member form
+   ↓ Collect: first_name, last_name, username, phone, address, password
+4. Validate & Create Member in Database
+   ↓ Success
+5. Front Door (frontdoor.tsx) - Welcome screen
+   ↓ Tap door image
+6. Menu Page (menu.tsx) - Select pizza & time slot
+   ↓ Select pizza → Select day → Select time
+7. Ticket Page (ticket.tsx) - Order confirmation
+   ↓ Confirm order
+8. Order Confirmation (orderConfirmation.tsx) - Final confirmation + SMS
+
+5.2 Existing Member Flow
+------------------------
+1. Landing Page (index.tsx)
+   ↓
+2. Login Page (login.tsx) - Enter name
+   ↓ Username found in database
+3. Front Door (frontdoor.tsx) - Direct access
+   ↓
+4. Menu Page (menu.tsx) - Order pizza
+   ↓
+5. Ticket → Order Confirmation
+
+5.3 Admin Flow
+--------------
+1. Login as "RobertP" (hardcoded admin check)
+   ↓
+2. Front Door shows "ADMIN PORTAL" button
+   ↓
+3. Admin Dashboard (admin/index.tsx)
+   ↓
+4. Navigate to: Orders | Members | Menu | Schedule | KDS
+
+5.4 Order Processing Flow
+-------------------------
+1. User selects pizza + time slot on menu.tsx
+   ↓
+2. Navigate to ticket.tsx with params: pizza, time, timeSlotId, username
+   ↓ User confirms
+3. Navigate to orderConfirmation.tsx with all params
+   ↓
+4. orderService.createOrder() called
+   ↓
+5. Lookup member by username → Get member_id
+   ↓
+6. Lookup pizza by name → Get pizza_id
+   ↓
+7. Create order record in database
+   ↓
+8. Increment time_slots.current_orders (via supabaseAdmin)
+   ↓
+9. Send SMS confirmation (MockSMSService currently)
+   ↓
+10. Display confirmation screen
+
+================================================================================
+6. COMPONENT STRUCTURE
+================================================================================
+
+6.1 Public Pages
+----------------
+File                      Purpose                    Key Features
+app/index.tsx            Landing page               Pizza image, "ENTER" button
+app/login.tsx            Member login               Name input, username conversion, member lookup
+app/signup.tsx           New member registration   Form: name, username, phone, address, password
+app/frontdoor.tsx        Welcome screen            Door image, admin portal button (RobertP only)
+app/menu.tsx             Pizza & time selection     Pizza grid, day selection, time slot grid, availability check
+app/ticket.tsx           Order summary             Order details, confirmation buttons
+app/orderConfirmation.tsx Final confirmation       Order creation, SMS send, success display
+app/account.tsx          Member profile            Profile display, edit capabilities
+app/history.tsx          Order history              Past orders list
+app/about.tsx            About page                 Pizza Dojo story
+app/contact.tsx          Contact info               Contact details
+
+6.2 Admin Pages
+---------------
+File                  Purpose              Key Features
+app/admin/index.tsx   Admin dashboard      Overview, navigation to all admin sections
+app/admin/orders.tsx  Order management    View orders by status, update status, filter
+app/admin/members.tsx Member management    View members, edit, delete
+app/admin/menu.tsx    Menu management     Add/edit pizzas, toggle availability
+app/admin/schedule.tsx Schedule management View nights, time slots, capacity
+app/admin/kds.tsx     Kitchen Display     Real-time order display for kitchen
+
+6.3 Core Libraries
+------------------
+File                  Purpose                    Key Functions
+lib/supabase.ts       Supabase client            Initializes Supabase client with env vars
+lib/supabaseApi.ts    Database API               CRUD functions for all tables
+lib/supabaseTypes.ts  TypeScript types           All database table interfaces
+lib/supabaseAdmin.ts  Admin client              Bypasses RLS for admin operations
+lib/orderService.ts   Order logic                createOrder(), SMS sending, pizza/time lookup
+lib/authUtils.ts      Auth utilities             handleAccountNavigation(), username handling
+lib/responsive.ts     Responsive design          useResponsiveValues() hook
+lib/adminAuth.ts      Admin auth                 Admin authentication checks
+
+================================================================================
+7. KEY FEATURES & LOGIC
+================================================================================
+
+7.1 Time Slot Availability System
+-----------------------------------
+Current Implementation:
+- Time slots created for Friday/Saturday nights (5:00 PM - 9:00 PM, 15-min intervals)
+- Each slot has max_orders: 1 (1 order per slot)
+- When order is placed, current_orders is incremented via supabaseAdmin
+- Menu page checks: isSlotTaken = !is_available || current_orders >= max_orders
+- Taken slots show as grayed out with "TAKEN" label
+
+⚠️ CURRENT ISSUE: Time slots are not being marked as taken after orders are placed. 
+The update logic exists in orderService.ts but may not be working due to RLS policies 
+or data fetching issues.
+
+7.2 Username Generation
+------------------------
+Full name (e.g., "Robert Paulson") → Username (e.g., "RobertP")
+Logic: First name + first letter of last name
+
+7.3 Order Creation Process
+---------------------------
+1. User selects pizza + time slot on menu
+2. Navigate to ticket.tsx with params
+3. User confirms order
+4. Navigate to orderConfirmation.tsx
+5. Lookup member by username → get member_id
+6. Lookup pizza by name → get pizza_id
+7. Create order record in database
+8. Increment time_slots.current_orders (via supabaseAdmin)
+9. Send SMS confirmation (mock currently)
+
+7.4 Menu Page Time Slot Display
+--------------------------------
+- Two-step selection: Day → Time
+- Days: Shows active nights (Friday/Saturday) from today onwards
+- Times: Shows available time slots for selected day
+- Time slots fetched from Supabase with current_orders and max_orders
+- Uses useFocusEffect to refetch when screen comes into focus
+- Slots with current_orders >= max_orders are disabled and grayed out
+
+================================================================================
+8. CURRENT STATE & ISSUES
+================================================================================
+
+8.1 Completed Features ✅
+-------------------------
+- Member authentication flow (login → signup → frontdoor)
+- Pizza selection UI with images
+- Time slot selection (day + time)
+- Order creation in database
+- Time slot update logic (increment current_orders)
+- Menu page focus effect (refetch on focus)
+- Admin panel structure
+- Database schema setup
+- RLS policies (mostly fixed)
+- supabaseAdmin.ts with crash-proof fallbacks
+
+8.2 In Progress 🔧
+-------------------
+- Time slot availability not updating correctly after orders
+- Menu page not showing taken slots as unavailable
+
+8.3 Known Issues
+----------------
+🚨 PRIORITY FIX NEEDED:
+- Time slots remain selectable after being booked
+- Need to verify: Database updates working? RLS policies correct? Data fetching correct?
+
+8.4 Pending Features
+--------------------
+- Real SMS integration (currently using MockSMSService)
+- Proper admin role system (currently hardcoded "RobertP" check)
+- Order history full implementation
+- Kitchen Display System (KDS) real-time updates
+- Order status tracking
+
+================================================================================
+9. FILE REFERENCE
+================================================================================
+
+9.1 Critical Files for Time Slot Fix
+-------------------------------------
+- app/menu.tsx - Lines 132-177 (fetchTimeSlots, useFocusEffect), 200-202 (isSlotTaken), 303-324 (time slot rendering)
+- lib/orderService.ts - Lines after order insert (time slot update logic using supabaseAdmin)
+- app/ticket.tsx - Lines 39, 152 (timeSlotId passing)
+- app/orderConfirmation.tsx - Receives timeSlotId param
+- lib/supabaseAdmin.ts - Admin client for bypassing RLS
+
+9.2 Database Scripts
+---------------------
+- scripts/populate-schedule.ts - Creates nights and time slots
+- scripts/setup-database.ts - Database schema setup
+- scripts/setup-nights-schema.sql - SQL for nights/time_slots columns
+
+================================================================================
+10. ENVIRONMENT SETUP
+================================================================================
+
+10.1 Required Environment Variables
+-----------------------------------
+EXPO_PUBLIC_SUPABASE_URL=https://bvmwcswddbepelgctybs.supabase.co
+EXPO_PUBLIC_SUPABASE_ANON_KEY=[anon key]
+SUPABASE_SERVICE_ROLE_KEY=[service role key] (for admin operations)
+
+10.2 Database Setup
+--------------------
+1. Run scripts/setup-database.ts to create tables
+2. Run scripts/populate-schedule.ts to create nights and time slots
+3. Apply RLS policies (see RLS_FIX_INSTRUCTIONS.md)
+
+================================================================================
+11. TESTING
+================================================================================
+
+11.1 Test Users
+---------------
+- test_pizza_1 - Test member
+- test_member_2 - Test member
+- qa_user_3 - Test member
+- RobertP - Admin user
+
+11.2 Test Flow
+--------------
+1. New member: index → login → signup → frontdoor → menu → ticket → orderConfirmation
+2. Existing member: index → login → frontdoor → menu → ticket → orderConfirmation
+3. Admin: login as RobertP → frontdoor → admin portal
+
+================================================================================
+12. NEXT STEPS
+================================================================================
+
+🎯 IMMEDIATE PRIORITY:
+1. Fix time slot availability system
+2. Verify database updates are working
+3. Test complete order flow end-to-end
+4. Verify menu page shows taken slots correctly
+
+================================================================================
+13. TECHNICAL NOTES
+================================================================================
+
+13.1 Design System
+-------------------
+- Primary Color: #00FF66 (neon green)
+- Background: #001a00 (dark green/black)
+- Font: VT323 (monospace, retro)
+- Theme: Retro cyberpunk / Matrix / Terminal
+
+13.2 Platform Support
+----------------------
+- ✅ iOS (via Expo)
+- ✅ Android (via Expo)
+- ✅ Web (React Native Web)
+
+13.3 Navigation
+----------------
+- File-based routing (Expo Router)
+- Params passed via useLocalSearchParams()
+- Navigation via router.push() and router.replace()
+
+13.4 Key Implementation Details
+-------------------------------
+- Time slots use UUIDs (not serial numbers)
+- Time slot starts_at is timestamptz (full ISO timestamp)
+- Night start_time/end_time are TIME type (HH:MM format)
+- supabaseAdmin.ts uses service role key to bypass RLS
+- orderService.ts increments current_orders after successful order creation
+- menu.tsx uses useFocusEffect to refetch time slots when screen comes into focus
+
+================================================================================
+END OF SUMMARY
+================================================================================
+
+🍕 Pizza Dojo - "In the Dojo, we don't just make pizza. We craft experiences." 🍕
+
+Document Generated: January 2025
+For: New AI Assistant Onboarding (Claude)
+
+
+
+
+
+
+
+
+
+
+
+
+
+

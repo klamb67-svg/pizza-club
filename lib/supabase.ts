@@ -3,7 +3,72 @@ import { createClient } from '@supabase/supabase-js';
 import 'react-native-get-random-values';
 import 'react-native-url-polyfill/auto';
 
-const SUPABASE_URL = process.env.SUPABASE_URL!;
-const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY!;
+// Debug environment variables
+console.log('🔍 Environment Debug:', {
+  NODE_ENV: process.env.NODE_ENV,
+  EXPO_PUBLIC_SUPABASE_URL: process.env.EXPO_PUBLIC_SUPABASE_URL,
+  EXPO_PUBLIC_SUPABASE_ANON_KEY: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ? 'present' : 'missing',
+  allEnvKeys: Object.keys(process.env).filter(key => key.startsWith('EXPO_PUBLIC_'))
+});
 
-export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// Temporary hardcoded values to get app running
+const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || 'https://bvmwcswddbepelgctybs.supabase.co';
+const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ2bXdjc3dkZGJlcGVsZ2N0eWJzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ3OTgzMjYsImV4cCI6MjA3MDM3NDMyNn0._eI2GVgkTRZoD7J1Y-LurfIPPwqrJBVBuERfDB5uNL8';
+
+if (!supabaseUrl || !supabaseAnonKey) {
+  console.error('❌ Environment variables missing:');
+  console.error('  EXPO_PUBLIC_SUPABASE_URL:', supabaseUrl);
+  console.error('  EXPO_PUBLIC_SUPABASE_ANON_KEY:', supabaseAnonKey ? 'present' : 'missing');
+  throw new Error('Missing Supabase environment variables. Please ensure EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY are set in your .env file.');
+}
+
+// Log configuration (without exposing full key)
+console.log('🔧 Supabase Config:', {
+  url: supabaseUrl,
+  keyPresent: !!supabaseAnonKey,
+  keyLength: supabaseAnonKey?.length || 0,
+  urlValid: supabaseUrl?.startsWith('https://') && supabaseUrl?.endsWith('.supabase.co'),
+  envLoaded: !!(process.env.EXPO_PUBLIC_SUPABASE_URL && process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY)
+});
+
+// Create Supabase client with timeout settings
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
+  },
+});
+
+// Diagnostic function to test connectivity
+export async function testSupabaseConnection(): Promise<{ success: boolean; error?: string }> {
+  try {
+    console.log('🔍 Testing Supabase connection to:', supabaseUrl);
+    const { data, error } = await supabase
+      .from('members')
+      .select('id')
+      .limit(1);
+    
+    if (error) {
+      console.error('❌ Supabase connection test failed:', error);
+      return { success: false, error: error.message };
+    }
+    
+    console.log('✅ Supabase connection successful!');
+    return { success: true };
+  } catch (err: any) {
+    const errorMessage = err?.message || String(err);
+    console.error('❌ Network error during Supabase test:', errorMessage);
+    
+    // Check for common network error patterns
+    if (errorMessage.includes('Network request failed') || 
+        errorMessage.includes('fetch failed') ||
+        errorMessage.includes('ECONNREFUSED')) {
+      return { 
+        success: false, 
+        error: `Network connection failed. Please check:\n1. Your device and computer are on the same Wi-Fi network\n2. The Supabase URL is correct: ${supabaseUrl}\n3. Your internet connection is working.`
+      };
+    }
+    
+    return { success: false, error: errorMessage };
+  }
+}

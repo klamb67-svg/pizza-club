@@ -1,10 +1,9 @@
 import { createClient } from '@supabase/supabase-js';
-import 'dotenv/config';
 
-const supabase = createClient(
-  process.env.SUPABASE_URL!,
-  process.env.SUPABASE_ANON_KEY!
-);
+const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || 'https://bvmwcswddbepelgctybs.supabase.co';
+const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ2bXdjc3dkZGJlcGVsZ2N0eWJzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ3OTgzMjYsImV4cCI6MjA3MDM3NDMyNn0._eI2GVgkTRZoD7J1Y-LurfIPPwqrJBVBuERfDB5uNL8';
+
+const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 // Admin Authentication Service
 export interface AdminUser {
@@ -26,46 +25,44 @@ export class AdminAuthService {
     return AdminAuthService.instance;
   }
   
-  // Check if user is admin (currently using hardcoded check)
-  async checkAdminAccess(username: string): Promise<AdminUser | null> {
+  // Check if user is admin - returns username only if they ARE admin, null otherwise
+  async checkAdminAccess(username: string): Promise<string | null> {
     try {
-      console.log('🔐 Checking admin access for:', username);
+      console.log('🔐 Checking if username is admin:', username);
       
-      // For now, use hardcoded admin check (RobertP)
-      if (username === 'RobertP') {
-        const adminUser: AdminUser = {
-          id: 'admin-robert',
-          username: 'RobertP',
-          role: 'super_admin',
-          permissions: ['orders', 'members', 'menu', 'schedule', 'settings'],
-          is_active: true
-        };
-        
-        this.currentAdmin = adminUser;
-        console.log('✅ Admin access granted:', adminUser);
-        return adminUser;
-      }
-      
-      // Check if user exists in members table
-      const { data: member, error } = await supabase
-        .from('members')
-        .select('id, username, first_name, last_name')
+      // Check if this username is in the admins table
+      const { data: adminRecord, error } = await supabase
+        .from('admins')
+        .select('username')
         .eq('username', username)
         .single();
       
-      if (error || !member) {
-        console.log('❌ User not found:', username);
+      if (error || !adminRecord) {
+        console.log('❌ Not an admin username:', username);
         return null;
       }
       
-      // For now, only RobertP is admin
-      console.log('❌ User is not admin:', username);
-      return null;
+      console.log('✅ Username is admin (password verification required)');
+      return username;
       
     } catch (error) {
       console.error('❌ Admin check failed:', error);
       return null;
     }
+  }
+  
+  // Set current admin after successful login
+  setCurrentAdmin(username: string): void {
+    const adminUser: AdminUser = {
+      id: 'admin-robert',
+      username: username,
+      role: 'super_admin',
+      permissions: ['orders', 'members', 'menu', 'schedule', 'settings'],
+      is_active: true
+    };
+    
+    this.currentAdmin = adminUser;
+    console.log('✅ Admin logged in:', adminUser);
   }
   
   // Get current admin user
@@ -112,7 +109,7 @@ export class AdminAuthService {
       
       // For now, return mock data since orders table has schema issues
       const dashboardData = {
-        totalOrders: 0, // Will be updated when orders table is fixed
+        totalOrders: 0,
         pendingOrders: 0,
         totalMembers: totalMembers || 0,
         activeOrders: 0

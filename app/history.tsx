@@ -12,6 +12,7 @@ import { useLocalSearchParams } from 'expo-router';
 import { supabase } from '../lib/supabase';
 import type { OrderWithDetails } from '../lib/supabaseTypes';
 import { useResponsiveValues } from '../lib/responsive';
+import BottomNav from '../components/BottomNav';
 
 const green = "#00FF66";
 const bg = "#001a00";
@@ -24,7 +25,6 @@ export default function History() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const responsive = useResponsiveValues();
 
-  // 🔧 TODO: filter by current user once auth context is finalized; swap fallback for a single joined query when FKs exist
   useEffect(() => {
     setIsLoggedIn(!!username);
     loadOrderHistory();
@@ -34,10 +34,29 @@ export default function History() {
     try {
       setLoading(true);
       
-      // Query orders data
-      const { data: ordersData, error: ordersError } = await supabase
+      // Get current user's member_id if username is available
+      let memberId: number | null = null;
+      if (username) {
+        const { data: member } = await supabase
+          .from('members')
+          .select('id')
+          .eq('username', username)
+          .single();
+        if (member) {
+          memberId = member.id;
+        }
+      }
+      
+      // Query orders data - filter by member_id if available
+      let query = supabase
         .from('orders')
-        .select('*')
+        .select('*');
+      
+      if (memberId) {
+        query = query.eq('member_id', memberId);
+      }
+      
+      const { data: ordersData, error: ordersError } = await query
         .order('created_at', { ascending: false });
 
       if (ordersError) {
@@ -54,32 +73,53 @@ export default function History() {
       // Fetch related data separately since foreign keys aren't set up
       const { data: membersData } = await supabase.from('members').select('id, first_name, last_name');
       const { data: pizzasData } = await supabase.from('pizzas').select('id, name');
-      const { data: timeSlotsData } = await supabase.from('time_slots').select('id, start_time');
+      const { data: timeSlotsData } = await supabase.from('time_slots').select('id, starts_at');
       const { data: nightsData } = await supabase.from('nights').select('id, day_of_week');
 
       // Create lookup maps for human-readable values
       const membersMap = new Map(membersData?.map(m => [m.id, `${m.first_name} ${m.last_name}`]) || []);
       const pizzasMap = new Map(pizzasData?.map(p => [p.id, p.name]) || []);
-      const timeSlotsMap = new Map(timeSlotsData?.map(t => [t.id, t.start_time]) || []);
+      // Convert starts_at timestamp to readable time format (HH:MM)
+      const timeSlotsMap = new Map(timeSlotsData?.map(t => {
+        if (!t.starts_at) return [t.id, '—'];
+        const date = new Date(t.starts_at);
+        const hours = date.getUTCHours();
+        const minutes = date.getUTCMinutes();
+        const timeStr = `${hours}:${minutes.toString().padStart(2, '0')}`;
+        return [t.id, timeStr];
+      }) || []);
       const nightsMap = new Map(nightsData?.map(n => [n.id, n.day_of_week]) || []);
 
       // Transform orders with human-readable values
-      const transformedOrders: OrderWithDetails[] = ordersData?.map(order => ({
-        ...order,
-        // Extract human-readable values using lookup maps
-        member_name: order.member_id ? membersMap.get(order.member_id) || '—' : '—',
-        pizza_name: order.pizza_id ? pizzasMap.get(order.pizza_id) || '—' : '—',
-        time_slot_start: order.time_slot_id ? timeSlotsMap.get(order.time_slot_id) || '—' : '—',
-        night_day: order.night_id ? (nightsMap.get(order.night_id) as 'Friday' | 'Saturday') || '—' : '—',
-        // Add fallback values for missing columns
-        member_id: order.member_id || 0,
-        pizza_id: order.pizza_id || 0,
-        time_slot_id: order.time_slot_id || 0,
-        night_id: order.night_id || 0,
-        status: order.status || 'pending',
-        quantity: order.quantity || 1,
-        total_price: order.total_price || 0,
-      }));
+      const transformedOrders: OrderWithDetails[] = ordersData?.map(order => {
+        // Handle both schema types: new orders have pizza_name/time_slot directly, old ones have IDs
+        const pizzaName = (order as any).pizza_name || (order.pizza_id ? pizzasMap.get(order.pizza_id) : null) || '—';
+        // Get time slot - either from direct time_slot field or lookup by time_slot_id
+        let timeSlot = (order as any).time_slot;
+        if (!timeSlot && order.time_slot_id) {
+          timeSlot = timeSlotsMap.get(order.time_slot_id) || '—';
+        }
+        if (!timeSlot) timeSlot = '—';
+        const memberName = order.member_id ? membersMap.get(order.member_id) || '—' : '—';
+        const nightDay = order.night_id ? (nightsMap.get(order.night_id) as 'Friday' | 'Saturday') || '—' : '—';
+        
+        return {
+          ...order,
+          // Use direct values if available, otherwise lookup from IDs
+          member_name: memberName,
+          pizza_name: pizzaName,
+          time_slot_starts_at: timeSlot, // Display time from starts_at
+          night_day: nightDay,
+          // Add fallback values for missing columns
+          member_id: order.member_id || 0,
+          pizza_id: order.pizza_id || 0,
+          time_slot_id: order.time_slot_id || 0,
+          night_id: order.night_id || 0,
+          status: order.status || 'pending',
+          quantity: order.quantity || 1,
+          total_price: order.total_price || (order as any).pizza_price || 0,
+        };
+      });
 
       // 🔧 TODO: Filter by current user once auth context is finalized
       // For now, show all orders as placeholder
@@ -124,7 +164,7 @@ export default function History() {
           <Text style={styles.statusText}>{item.status.toUpperCase()}</Text>
         </View>
       </View>
-      <Text style={styles.timeSlot}>Pickup: {item.time_slot_start}</Text>
+      <Text style={styles.timeSlot}>Pickup: {item.time_slot_starts_at || '—'}</Text>
       <Text style={styles.orderDate}>Ordered: {new Date(item.created_at || '').toLocaleDateString()}</Text>
       <Text style={styles.price}>${item.total_price?.toFixed(2) || '0.00'}</Text>
     </View>
@@ -173,6 +213,7 @@ export default function History() {
           columnWrapperStyle={responsive.gridColumns > 1 ? styles.row : undefined}
         />
       )}
+      <BottomNav currentPage="history" username={username} />
     </SafeAreaView>
   );
 }

@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pizza Club App - Technical Summary</title>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            background: #001a00;
+            color: #00FF66;
+            padding: 20px;
+            line-height: 1.6;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .copy-button {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #00FF66;
+            color: #001a00;
+            border: 3px solid #00FF66;
+            padding: 15px 30px;
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+            font-size: 16px;
+            cursor: pointer;
+            border-radius: 6px;
+            box-shadow: 0 0 20px rgba(0, 255, 102, 0.8);
+            z-index: 9999;
+            transition: all 0.3s;
+        }
+        .copy-button:hover {
+            background: #00cc52;
+            box-shadow: 0 0 15px rgba(0, 255, 102, 0.8);
+        }
+        .copy-button:active {
+            transform: scale(0.95);
+        }
+        h1 {
+            color: #00FF66;
+            text-shadow: 0 0 10px rgba(0, 255, 102, 0.5);
+            border-bottom: 2px solid #00FF66;
+            padding-bottom: 10px;
+        }
+        h2 {
+            color: #00FF66;
+            margin-top: 30px;
+            border-left: 4px solid #00FF66;
+            padding-left: 10px;
+        }
+        h3 {
+            color: #00cc52;
+            margin-top: 20px;
+        }
+        code {
+            background: rgba(0, 255, 102, 0.1);
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+        }
+        pre {
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid #00FF66;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            margin: 15px 0;
+        }
+        .flow-diagram {
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid #00FF66;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+        }
+        .flow-step {
+            margin: 10px 0;
+            padding: 8px;
+            background: rgba(0, 255, 102, 0.1);
+            border-left: 3px solid #00FF66;
+        }
+        .flow-arrow {
+            text-align: center;
+            color: #00FF66;
+            font-size: 20px;
+            margin: 5px 0;
+        }
+        ul, ol {
+            margin: 15px 0;
+            padding-left: 30px;
+        }
+        li {
+            margin: 8px 0;
+        }
+        .status-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 3px;
+            font-size: 12px;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+        .status-complete {
+            background: #00FF66;
+            color: #001a00;
+        }
+        .status-in-progress {
+            background: #FFD700;
+            color: #001a00;
+        }
+        .status-pending {
+            background: #ff6666;
+            color: #fff;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            background: rgba(0, 0, 0, 0.5);
+        }
+        th, td {
+            border: 1px solid #00FF66;
+            padding: 10px;
+            text-align: left;
+        }
+        th {
+            background: rgba(0, 255, 102, 0.2);
+            color: #00FF66;
+            font-weight: bold;
+        }
+        .warning {
+            background: rgba(255, 102, 102, 0.2);
+            border-left: 4px solid #ff6666;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+        .info {
+            background: rgba(0, 255, 102, 0.1);
+            border-left: 4px solid #00FF66;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <button class="copy-button" onclick="copyToClipboard()" title="Click to copy all content">📋 COPY ALL</button>
+    
+    <div id="content">
+        <div style="background: rgba(0, 255, 102, 0.2); border: 2px solid #00FF66; padding: 15px; margin-bottom: 30px; border-radius: 5px; text-align: center;">
+            <button onclick="copyToClipboard()" style="background: #00FF66; color: #001a00; border: 2px solid #00FF66; padding: 12px 24px; font-family: 'Courier New', monospace; font-weight: bold; font-size: 18px; cursor: pointer; border-radius: 4px; box-shadow: 0 0 15px rgba(0, 255, 102, 0.6);">
+                📋 CLICK HERE TO COPY ALL CONTENT
+            </button>
+            <p style="margin-top: 10px; font-size: 14px; opacity: 0.8;">Or use the button in the top-right corner</p>
+        </div>
+        <h1>🍕 PIZZA CLUB APP - COMPLETE TECHNICAL SUMMARY</h1>
+        
+        <div class="info">
+            <strong>📅 Last Updated:</strong> January 2025<br>
+            <strong>🎯 Status:</strong> Active Development - Time Slot Availability Fix In Progress<br>
+            <strong>👤 Primary Developer:</strong> Cursor AI Assistant
+        </div>
+
+        <h2>1. PROJECT OVERVIEW</h2>
+        
+        <h3>1.1 What Is This App?</h3>
+        <p>
+            <strong>Pizza Dojo</strong> is a secret society pizza club ordering application with a retro/cyberpunk aesthetic. 
+            The app operates exclusively on Friday & Saturday nights, featuring a neon-lit digital underground theme 
+            with VT323 monospace font and green (#00FF66) on dark background (#001a00).
+        </p>
+        
+        <h3>1.2 Core Purpose</h3>
+        <ul>
+            <li>Members-only pizza ordering system</li>
+            <li>Time slot-based pickup scheduling (1 order per 15-minute slot)</li>
+            <li>Admin panel for order management and kitchen operations</li>
+            <li>Retro terminal/Matrix-style UI design</li>
+        </ul>
+
+        <h2>2. TECH STACK</h2>
+        
+        <h3>2.1 Frontend Framework</h3>
+        <ul>
+            <li><strong>React Native</strong> 0.81.4 - Cross-platform mobile framework</li>
+            <li><strong>Expo</strong> 54.0.8 - Development platform and tooling</li>
+            <li><strong>Expo Router</strong> 6.0.6 - File-based routing system</li>
+            <li><strong>React</strong> 19.1.0 - UI library</li>
+            <li><strong>TypeScript</strong> 5.8.3 - Type safety</li>
+        </ul>
+
+        <h3>2.2 Backend & Database</h3>
+        <ul>
+            <li><strong>Supabase</strong> - PostgreSQL database + Auth + Storage</li>
+            <li><strong>Row Level Security (RLS)</strong> - Database security policies</li>
+            <li><strong>Supabase JS Client</strong> 2.74.0 - Database client library</li>
+        </ul>
+
+        <h3>2.3 UI/UX Libraries</h3>
+        <ul>
+            <li><strong>Expo Linear Gradient</strong> - Gradient overlays</li>
+            <li><strong>Expo Image</strong> - Optimized image loading</li>
+            <li><strong>VT323 Font</strong> - Retro monospace font</li>
+            <li><strong>React Navigation</strong> - Navigation system</li>
+        </ul>
+
+        <h3>2.4 Development Tools</h3>
+        <ul>
+            <li><strong>Playwright</strong> - End-to-end testing</li>
+            <li><strong>ESLint</strong> - Code linting</li>
+            <li><strong>TSX</strong> - TypeScript execution</li>
+        </ul>
+
+        <h2>3. ARCHITECTURE</h2>
+        
+        <h3>3.1 Application Structure</h3>
+        <pre>
+pizza-club/
+├── app/                    # Expo Router pages (file-based routing)
+│   ├── index.tsx          # Landing page
+│   ├── login.tsx          # Member login
+│   ├── signup.tsx         # New member registration
+│   ├── frontdoor.tsx      # Welcome screen
+│   ├── menu.tsx           # Pizza selection + time slot booking
+│   ├── ticket.tsx         # Order confirmation screen
+│   ├── orderConfirmation.tsx  # Final order confirmation
+│   ├── account.tsx         # Member profile
+│   ├── history.tsx         # Order history
+│   ├── admin/             # Admin panel routes
+│   │   ├── orders.tsx     # Order management
+│   │   ├── members.tsx    # Member management
+│   │   ├── menu.tsx       # Menu management
+│   │   ├── schedule.tsx   # Time slot management
+│   │   └── kds.tsx        # Kitchen Display System
+│   └── _layout.tsx         # Root layout
+├── lib/                    # Core business logic
+│   ├── supabase.ts        # Supabase client initialization
+│   ├── supabaseApi.ts     # Database API functions
+│   ├── supabaseTypes.ts   # TypeScript type definitions
+│   ├── orderService.ts    # Order creation + SMS logic
+│   ├── authUtils.ts       # Authentication utilities
+│   └── responsive.ts      # Responsive design utilities
+├── components/             # Reusable UI components
+│   ├── BottomNav.tsx      # Navigation component
+│   └── ui/                # UI primitives
+├── scripts/                # Database setup & utilities
+│   ├── populate-schedule.ts  # Create nights & time slots
+│   └── setup-database.ts     # Database schema setup
+└── constants/              # App constants
+    ├── Colors.ts          # Color palette
+    └── TerminalStyles.ts  # Styling constants
+        </pre>
+
+        <h3>3.2 Data Flow Architecture</h3>
+        <div class="flow-diagram">
+            <div class="flow-step">1. User Input (React Native Components)</div>
+            <div class="flow-arrow">↓</div>
+            <div class="flow-step">2. Business Logic (lib/orderService.ts, lib/supabaseApi.ts)</div>
+            <div class="flow-arrow">↓</div>
+            <div class="flow-step">3. Supabase Client (lib/supabase.ts)</div>
+            <div class="flow-arrow">↓</div>
+            <div class="flow-step">4. PostgreSQL Database (with RLS policies)</div>
+            <div class="flow-arrow">↓</div>
+            <div class="flow-step">5. Response → UI Update</div>
+        </div>
+
+        <h2>4. DATABASE SCHEMA</h2>
+        
+        <h3>4.1 Core Tables</h3>
+        
+        <h4>Members Table</h4>
+        <table>
+            <tr><th>Column</th><th>Type</th><th>Description</th></tr>
+            <tr><td>id</td><td>number (PK)</td><td>Primary key</td></tr>
+            <tr><td>first_name</td><td>string</td><td>Member first name</td></tr>
+            <tr><td>last_name</td><td>string</td><td>Member last name</td></tr>
+            <tr><td>username</td><td>string (unique)</td><td>Generated from name (e.g., "RobertP")</td></tr>
+            <tr><td>phone</td><td>string</td><td>Phone number for SMS</td></tr>
+            <tr><td>address</td><td>string (optional)</td><td>Member address</td></tr>
+            <tr><td>password_hash</td><td>string</td><td>Hashed password</td></tr>
+            <tr><td>created_at</td><td>timestamp</td><td>Creation timestamp</td></tr>
+            <tr><td>updated_at</td><td>timestamp</td><td>Last update timestamp</td></tr>
+        </table>
+
+        <h4>Orders Table</h4>
+        <table>
+            <tr><th>Column</th><th>Type</th><th>Description</th></tr>
+            <tr><td>id</td><td>number (PK)</td><td>Primary key</td></tr>
+            <tr><td>member_id</td><td>number (FK)</td><td>Foreign key to members</td></tr>
+            <tr><td>pizza_id</td><td>number (FK)</td><td>Foreign key to pizzas</td></tr>
+            <tr><td>time_slot_id</td><td>string (FK, UUID)</td><td>Foreign key to time_slots</td></tr>
+            <tr><td>night_id</td><td>string (FK, UUID)</td><td>Foreign key to nights</td></tr>
+            <tr><td>status</td><td>enum</td><td>'pending' | 'in_progress' | 'completed' | 'cancelled'</td></tr>
+            <tr><td>quantity</td><td>number</td><td>Number of pizzas</td></tr>
+            <tr><td>total_price</td><td>number</td><td>Order total</td></tr>
+            <tr><td>special_instructions</td><td>string (optional)</td><td>Customer notes</td></tr>
+            <tr><td>notes</td><td>string (optional)</td><td>Internal notes</td></tr>
+            <tr><td>created_at</td><td>timestamp</td><td>Creation timestamp</td></tr>
+            <tr><td>updated_at</td><td>timestamp</td><td>Last update timestamp</td></tr>
+        </table>
+
+        <h4>Time Slots Table</h4>
+        <table>
+            <tr><th>Column</th><th>Type</th><th>Description</th></tr>
+            <tr><td>id</td><td>string (PK, UUID)</td><td>Primary key</td></tr>
+            <tr><td>night_id</td><td>string (FK, UUID)</td><td>Foreign key to nights</td></tr>
+            <tr><td>starts_at</td><td>timestamptz</td><td>Slot start time (ISO timestamp)</td></tr>
+            <tr><td>is_available</td><td>boolean</td><td>Whether slot is available</td></tr>
+            <tr><td>max_orders</td><td>number</td><td>Maximum orders per slot (default: 1)</td></tr>
+            <tr><td>current_orders</td><td>number</td><td>Current number of orders (default: 0)</td></tr>
+            <tr><td>created_at</td><td>timestamptz</td><td>Creation timestamp</td></tr>
+        </table>
+
+        <h4>Nights Table</h4>
+        <table>
+            <tr><th>Column</th><th>Type</th><th>Description</th></tr>
+            <tr><td>id</td><td>string (PK, UUID)</td><td>Primary key</td></tr>
+            <tr><td>date</td><td>date</td><td>Night date (YYYY-MM-DD)</td></tr>
+            <tr><td>day_of_week</td><td>string</td><td>'Friday' | 'Saturday'</td></tr>
+            <tr><td>is_active</td><td>boolean</td><td>Whether night is active</td></tr>
+            <tr><td>max_capacity</td><td>number</td><td>Maximum capacity for the night</td></tr>
+            <tr><td>start_time</td><td>time</td><td>Night start time (HH:MM)</td></tr>
+            <tr><td>end_time</td><td>time</td><td>Night end time (HH:MM)</td></tr>
+            <tr><td>notes</td><td>string (optional)</td><td>Internal notes</td></tr>
+            <tr><td>created_at</td><td>timestamp</td><td>Creation timestamp</td></tr>
+            <tr><td>updated_at</td><td>timestamp</td><td>Last update timestamp</td></tr>
+        </table>
+
+        <h4>Pizzas Table</h4>
+        <table>
+            <tr><th>Column</th><th>Type</th><th>Description</th></tr>
+            <tr><td>id</td><td>number (PK)</td><td>Primary key</td></tr>
+            <tr><td>name</td><td>string</td><td>Pizza name</td></tr>
+            <tr><td>description</td><td>string</td><td>Pizza description</td></tr>
+            <tr><td>price</td><td>number</td><td>Pizza price</td></tr>
+            <tr><td>image_url</td><td>string (optional)</td><td>Pizza image URL</td></tr>
+            <tr><td>available</td><td>boolean</td><td>Whether pizza is available</td></tr>
+            <tr><td>category</td><td>enum</td><td>'classic' | 'specialty' | 'veggie' | 'meat_lovers'</td></tr>
+            <tr><td>ingredients</td><td>string[]</td><td>Array of ingredients</td></tr>
+            <tr><td>size_options</td><td>enum[]</td><td>['small' | 'medium' | 'large']</td></tr>
+            <tr><td>is_featured</td><td>boolean</td><td>Featured pizza flag</td></tr>
+            <tr><td>preparation_time</td><td>number</td><td>Prep time in minutes</td></tr>
+            <tr><td>created_at</td><td>timestamp</td><td>Creation timestamp</td></tr>
+            <tr><td>updated_at</td><td>timestamp</td><td>Last update timestamp</td></tr>
+        </table>
+
+        <h3>4.2 Row Level Security (RLS)</h3>
+        <p>
+            All tables have RLS policies enabled. Key policies:
+        </p>
+        <ul>
+            <li><strong>Members:</strong> Allow anonymous signup, authenticated read, public profile updates</li>
+            <li><strong>Orders:</strong> Members can create their own orders, read their own orders</li>
+            <li><strong>Time Slots:</strong> Public read for availability, admin write</li>
+            <li><strong>Nights:</strong> Public read for active nights, admin write</li>
+        </ul>
+
+        <h2>5. USER FLOWS</h2>
+        
+        <h3>5.1 New Member Flow</h3>
+        <div class="flow-diagram">
+            <div class="flow-step">1. Landing Page (index.tsx)</div>
+            <div class="flow-arrow">↓ User clicks "ENTER"</div>
+            <div class="flow-step">2. Login Page (login.tsx) - Enter full name</div>
+            <div class="flow-arrow">↓ System converts to username, checks database</div>
+            <div class="flow-step">3. Signup Page (signup.tsx) - New member form</div>
+            <div class="flow-arrow">↓ Collect: first_name, last_name, username, phone, address, password</div>
+            <div class="flow-step">4. Validate & Create Member in Database</div>
+            <div class="flow-arrow">↓ Success</div>
+            <div class="flow-step">5. Front Door (frontdoor.tsx) - Welcome screen</div>
+            <div class="flow-arrow">↓ Tap door image</div>
+            <div class="flow-step">6. Menu Page (menu.tsx) - Select pizza & time slot</div>
+            <div class="flow-arrow">↓ Select pizza → Select day → Select time</div>
+            <div class="flow-step">7. Ticket Page (ticket.tsx) - Order confirmation</div>
+            <div class="flow-arrow">↓ Confirm order</div>
+            <div class="flow-step">8. Order Confirmation (orderConfirmation.tsx) - Final confirmation + SMS</div>
+        </div>
+
+        <h3>5.2 Existing Member Flow</h3>
+        <div class="flow-diagram">
+            <div class="flow-step">1. Landing Page (index.tsx)</div>
+            <div class="flow-arrow">↓</div>
+            <div class="flow-step">2. Login Page (login.tsx) - Enter name</div>
+            <div class="flow-arrow">↓ Username found in database</div>
+            <div class="flow-step">3. Front Door (frontdoor.tsx) - Direct access</div>
+            <div class="flow-arrow">↓</div>
+            <div class="flow-step">4. Menu Page (menu.tsx) - Order pizza</div>
+            <div class="flow-arrow">↓</div>
+            <div class="flow-step">5. Ticket → Order Confirmation</div>
+        </div>
+
+        <h3>5.3 Admin Flow</h3>
+        <div class="flow-diagram">
+            <div class="flow-step">1. Login as "RobertP" (hardcoded admin check)</div>
+            <div class="flow-arrow">↓</div>
+            <div class="flow-step">2. Front Door shows "ADMIN PORTAL" button</div>
+            <div class="flow-arrow">↓</div>
+            <div class="flow-step">3. Admin Dashboard (admin/index.tsx)</div>
+            <div class="flow-arrow">↓</div>
+            <div class="flow-step">4. Navigate to: Orders | Members | Menu | Schedule | KDS</div>
+        </div>
+
+        <h3>5.4 Order Processing Flow</h3>
+        <div class="flow-diagram">
+            <div class="flow-step">1. User selects pizza + time slot on menu.tsx</div>
+            <div class="flow-arrow">↓</div>
+            <div class="flow-step">2. Navigate to ticket.tsx with params: pizza, time, timeSlotId, username</div>
+            <div class="flow-arrow">↓ User confirms</div>
+            <div class="flow-step">3. Navigate to orderConfirmation.tsx with all params</div>
+            <div class="flow-arrow">↓</div>
+            <div class="flow-step">4. orderService.createOrder() called</div>
+            <div class="flow-arrow">↓</div>
+            <div class="flow-step">5. Lookup member by username → Get member_id</div>
+            <div class="flow-arrow">↓</div>
+            <div class="flow-step">6. Lookup pizza by name → Get pizza_id</div>
+            <div class="flow-arrow">↓</div>
+            <div class="flow-step">7. Create order record in database</div>
+            <div class="flow-arrow">↓</div>
+            <div class="flow-step">8. Increment time_slots.current_orders</div>
+            <div class="flow-arrow">↓</div>
+            <div class="flow-step">9. Send SMS confirmation (MockSMSService currently)</div>
+            <div class="flow-arrow">↓</div>
+            <div class="flow-step">10. Display confirmation screen</div>
+        </div>
+
+        <h2>6. COMPONENT STRUCTURE</h2>
+        
+        <h3>6.1 Public Pages</h3>
+        <table>
+            <tr><th>File</th><th>Purpose</th><th>Key Features</th></tr>
+            <tr><td>app/index.tsx</td><td>Landing page</td><td>Pizza image, "ENTER" button</td></tr>
+            <tr><td>app/login.tsx</td><td>Member login</td><td>Name input, username conversion, member lookup</td></tr>
+            <tr><td>app/signup.tsx</td><td>New member registration</td><td>Form: name, username, phone, address, password</td></tr>
+            <tr><td>app/frontdoor.tsx</td><td>Welcome screen</td><td>Door image, admin portal button (RobertP only)</td></tr>
+            <tr><td>app/menu.tsx</td><td>Pizza & time selection</td><td>Pizza grid, day selection, time slot grid, availability check</td></tr>
+            <tr><td>app/ticket.tsx</td><td>Order summary</td><td>Order details, confirmation buttons</td></tr>
+            <tr><td>app/orderConfirmation.tsx</td><td>Final confirmation</td><td>Order creation, SMS send, success display</td></tr>
+            <tr><td>app/account.tsx</td><td>Member profile</td><td>Profile display, edit capabilities</td></tr>
+            <tr><td>app/history.tsx</td><td>Order history</td><td>Past orders list</td></tr>
+            <tr><td>app/about.tsx</td><td>About page</td><td>Pizza Dojo story</td></tr>
+            <tr><td>app/contact.tsx</td><td>Contact info</td><td>Contact details</td></tr>
+        </table>
+
+        <h3>6.2 Admin Pages</h3>
+        <table>
+            <tr><th>File</th><th>Purpose</th><th>Key Features</th></tr>
+            <tr><td>app/admin/index.tsx</td><td>Admin dashboard</td><td>Overview, navigation to all admin sections</td></tr>
+            <tr><td>app/admin/orders.tsx</td><td>Order management</td><td>View orders by status, update status, filter</td></tr>
+            <tr><td>app/admin/members.tsx</td><td>Member management</td><td>View members, edit, delete</td></tr>
+            <tr><td>app/admin/menu.tsx</td><td>Menu management</td><td>Add/edit pizzas, toggle availability</td></tr>
+            <tr><td>app/admin/schedule.tsx</td><td>Schedule management</td><td>View nights, time slots, capacity</td></tr>
+            <tr><td>app/admin/kds.tsx</td><td>Kitchen Display System</td><td>Real-time order display for kitchen</td></tr>
+        </table>
+
+        <h3>6.3 Core Libraries</h3>
+        <table>
+            <tr><th>File</th><th>Purpose</th><th>Key Functions</th></tr>
+            <tr><td>lib/supabase.ts</td><td>Supabase client</td><td>Initializes Supabase client with env vars</td></tr>
+            <tr><td>lib/supabaseApi.ts</td><td>Database API</td><td>CRUD functions for all tables</td></tr>
+            <tr><td>lib/supabaseTypes.ts</td><td>TypeScript types</td><td>All database table interfaces</td></tr>
+            <tr><td>lib/orderService.ts</td><td>Order logic</td><td>createOrder(), SMS sending, pizza/time lookup</td></tr>
+            <tr><td>lib/authUtils.ts</td><td>Auth utilities</td><td>handleAccountNavigation(), username handling</td></tr>
+            <tr><td>lib/responsive.ts</td><td>Responsive design</td><td>useResponsiveValues() hook</td></tr>
+            <tr><td>lib/adminAuth.ts</td><td>Admin auth</td><td>Admin authentication checks</td></tr>
+        </table>
+
+        <h2>7. KEY FEATURES & LOGIC</h2>
+        
+        <h3>7.1 Time Slot Availability System</h3>
+        <p><strong>Current Implementation:</strong></p>
+        <ul>
+            <li>Time slots created for Friday/Saturday nights (5:00 PM - 9:00 PM, 15-min intervals)</li>
+            <li>Each slot has <code>max_orders: 1</code> (1 order per slot)</li>
+            <li>When order is placed, <code>current_orders</code> is incremented</li>
+            <li>Menu page checks: <code>isSlotTaken = !is_available || current_orders >= max_orders</code></li>
+            <li>Taken slots show as grayed out with "TAKEN" label</li>
+        </ul>
+        <div class="warning">
+            <strong>⚠️ CURRENT ISSUE:</strong> Time slots are not being marked as taken after orders are placed. 
+            The update logic exists but may not be working due to RLS policies or data fetching issues.
+        </div>
+
+        <h3>7.2 Username Generation</h3>
+        <p>
+            Full name (e.g., "Robert Paulson") → Username (e.g., "RobertP")
+            <br>Logic: First name + first letter of last name
+        </p>
+
+        <h3>7.3 Order Creation Process</h3>
+        <ol>
+            <li>User selects pizza + time slot on menu</li>
+            <li>Navigate to ticket.tsx with params</li>
+            <li>User confirms order</li>
+            <li>Navigate to orderConfirmation.tsx</li>
+            <li>Lookup member by username → get member_id</li>
+            <li>Lookup pizza by name → get pizza_id</li>
+            <li>Create order record in database</li>
+            <li>Increment time_slots.current_orders</li>
+            <li>Send SMS confirmation (mock currently)</li>
+        </ol>
+
+        <h3>7.4 Menu Page Time Slot Display</h3>
+        <ul>
+            <li>Two-step selection: Day → Time</li>
+            <li>Days: Shows active nights (Friday/Saturday) from today onwards</li>
+            <li>Times: Shows available time slots for selected day</li>
+            <li>Time slots fetched from Supabase with <code>current_orders</code> and <code>max_orders</code></li>
+            <li>Uses <code>useFocusEffect</code> to refetch when screen comes into focus</li>
+            <li>Slots with <code>current_orders >= max_orders</code> are disabled and grayed out</li>
+        </ul>
+
+        <h2>8. CURRENT STATE & ISSUES</h2>
+        
+        <h3>8.1 Completed Features <span class="status-badge status-complete">COMPLETE</span></h3>
+        <ul>
+            <li>✅ Member authentication flow (login → signup → frontdoor)</li>
+            <li>✅ Pizza selection UI with images</li>
+            <li>✅ Time slot selection (day + time)</li>
+            <li>✅ Order creation in database</li>
+            <li>✅ Time slot update logic (increment current_orders)</li>
+            <li>✅ Menu page focus effect (refetch on focus)</li>
+            <li>✅ Admin panel structure</li>
+            <li>✅ Database schema setup</li>
+            <li>✅ RLS policies (mostly fixed)</li>
+        </ul>
+
+        <h3>8.2 In Progress <span class="status-badge status-in-progress">IN PROGRESS</span></h3>
+        <ul>
+            <li>🔧 Time slot availability not updating correctly after orders</li>
+            <li>🔧 Menu page not showing taken slots as unavailable</li>
+        </ul>
+
+        <h3>8.3 Known Issues</h3>
+        <div class="warning">
+            <strong>🚨 PRIORITY FIX NEEDED:</strong>
+            <ul>
+                <li>Time slots remain selectable after being booked</li>
+                <li>Need to verify: Database updates working? RLS policies correct? Data fetching correct?</li>
+                <li>See MENU_TIMESLOT_AVAILABILITY_FIX.md for investigation steps</li>
+            </ul>
+        </div>
+
+        <h3>8.4 Pending Features</h3>
+        <ul>
+            <li>Real SMS integration (currently using MockSMSService)</li>
+            <li>Proper admin role system (currently hardcoded "RobertP" check)</li>
+            <li>Order history full implementation</li>
+            <li>Kitchen Display System (KDS) real-time updates</li>
+            <li>Order status tracking</li>
+        </ul>
+
+        <h2>9. FILE REFERENCE</h2>
+        
+        <h3>9.1 Critical Files for Time Slot Fix</h3>
+        <ul>
+            <li><code>app/menu.tsx</code> - Lines 132-177 (fetchTimeSlots, useFocusEffect), 200-202 (isSlotTaken), 303-324 (time slot rendering)</li>
+            <li><code>app/orderConfirmation.tsx</code> - Lines 107-129 (time slot update logic)</li>
+            <li><code>app/ticket.tsx</code> - Lines 39, 152 (timeSlotId passing)</li>
+            <li><code>scripts/populate-schedule.ts</code> - Time slot creation script</li>
+        </ul>
+
+        <h3>9.2 Database Scripts</h3>
+        <ul>
+            <li><code>scripts/populate-schedule.ts</code> - Creates nights and time slots</li>
+            <li><code>scripts/setup-database.ts</code> - Database schema setup</li>
+            <li><code>scripts/setup-nights-schema.sql</code> - SQL for nights/time_slots columns</li>
+        </ul>
+
+        <h2>10. ENVIRONMENT SETUP</h2>
+        
+        <h3>10.1 Required Environment Variables</h3>
+        <pre>
+EXPO_PUBLIC_SUPABASE_URL=https://bvmwcswddbepelgctybs.supabase.co
+EXPO_PUBLIC_SUPABASE_ANON_KEY=[anon key]
+SUPABASE_SERVICE_ROLE_KEY=[service role key] (for admin operations)
+        </pre>
+
+        <h3>10.2 Database Setup</h3>
+        <ol>
+            <li>Run <code>scripts/setup-database.ts</code> to create tables</li>
+            <li>Run <code>scripts/populate-schedule.ts</code> to create nights and time slots</li>
+            <li>Apply RLS policies (see RLS_FIX_INSTRUCTIONS.md)</li>
+        </ol>
+
+        <h2>11. TESTING</h2>
+        
+        <h3>11.1 Test Users</h3>
+        <ul>
+            <li><code>test_pizza_1</code> - Test member</li>
+            <li><code>test_member_2</code> - Test member</li>
+            <li><code>qa_user_3</code> - Test member</li>
+            <li><code>RobertP</code> - Admin user</li>
+        </ul>
+
+        <h3>11.2 Test Flow</h3>
+        <ol>
+            <li>New member: index → login → signup → frontdoor → menu → ticket → orderConfirmation</li>
+            <li>Existing member: index → login → frontdoor → menu → ticket → orderConfirmation</li>
+            <li>Admin: login as RobertP → frontdoor → admin portal</li>
+        </ol>
+
+        <h2>12. NEXT STEPS</h2>
+        
+        <div class="info">
+            <strong>🎯 IMMEDIATE PRIORITY:</strong>
+            <ol>
+                <li>Fix time slot availability system (see MENU_TIMESLOT_AVAILABILITY_FIX.md)</li>
+                <li>Verify database updates are working</li>
+                <li>Test complete order flow end-to-end</li>
+                <li>Verify menu page shows taken slots correctly</li>
+            </ol>
+        </div>
+
+        <h2>13. TECHNICAL NOTES</h2>
+        
+        <h3>13.1 Design System</h3>
+        <ul>
+            <li><strong>Primary Color:</strong> #00FF66 (neon green)</li>
+            <li><strong>Background:</strong> #001a00 (dark green/black)</li>
+            <li><strong>Font:</strong> VT323 (monospace, retro)</li>
+            <li><strong>Theme:</strong> Retro cyberpunk / Matrix / Terminal</li>
+        </ul>
+
+        <h3>13.2 Platform Support</h3>
+        <ul>
+            <li>✅ iOS (via Expo)</li>
+            <li>✅ Android (via Expo)</li>
+            <li>✅ Web (React Native Web)</li>
+        </ul>
+
+        <h3>13.3 Navigation</h3>
+        <ul>
+            <li>File-based routing (Expo Router)</li>
+            <li>Params passed via <code>useLocalSearchParams()</code></li>
+            <li>Navigation via <code>router.push()</code> and <code>router.replace()</code></li>
+        </ul>
+
+        <hr style="border-color: #00FF66; margin: 40px 0;">
+        
+        <p style="text-align: center; color: #00cc52; font-size: 14px;">
+            🍕 Pizza Dojo - "In the Dojo, we don't just make pizza. We craft experiences." 🍕
+            <br><br>
+            <strong>Document Generated:</strong> January 2025
+            <br>
+            <strong>For:</strong> New AI Assistant Onboarding
+        </p>
+    </div>
+
+    <script>
+        function copyToClipboard() {
+            const content = document.getElementById('content').innerText;
+            navigator.clipboard.writeText(content).then(() => {
+                const button = document.querySelector('.copy-button');
+                const originalText = button.textContent;
+                button.textContent = '✅ COPIED!';
+                button.style.background = '#00cc52';
+                setTimeout(() => {
+                    button.textContent = originalText;
+                    button.style.background = '#00FF66';
+                }, 2000);
+            }).catch(err => {
+                console.error('Failed to copy:', err);
+                alert('Failed to copy. Please select and copy manually.');
+            });
+        }
+    </script>
+</body>
+</html>
+

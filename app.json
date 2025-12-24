@@ -1,8 +1,8 @@
 {
   "expo": {
-    "name": "pizza-club",
+    "name": "Pizza Club",
     "slug": "pizza-club",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "pizzaclub",
@@ -13,11 +13,12 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "foregroundImage": "./assets/images/icon.png",
+        "backgroundColor": "#000000"
       },
       "edgeToEdgeEnabled": true,
-      "package": "com.anonymous.pizzaclub"
+      "package": "com.nimix.pizzaclub",
+      "versionCode": 2
     },
     "web": {
       "bundler": "metro",
@@ -32,13 +33,20 @@
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 200,
           "resizeMode": "contain",
-          "backgroundColor": "#ffffff"
+          "backgroundColor": "#000000"
         }
       ],
-      "expo-font"
+      "expo-font",
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "a480cfdd-1279-4e9f-8d31-b930d2733434"
+      }
     }
   }
 }

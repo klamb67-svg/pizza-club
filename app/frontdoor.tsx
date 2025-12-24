@@ -3,10 +3,22 @@ import React from "react";
 import { Image, Pressable, SafeAreaView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useFonts, VT323_400Regular } from "@expo-google-fonts/vt323";
 import { useResponsiveValues } from "../lib/responsive";
-import { handleAccountNavigation } from "../lib/authUtils";
+import { TERMINAL_COLORS, TERMINAL_TEXT_SHADOW } from "../constants/TerminalStyles";
+import BottomNav from "../components/BottomNav";
 
-const green = "#00FF66";
-const bg = "#001a00";
+const green = TERMINAL_COLORS.green;
+const bg = TERMINAL_COLORS.bg;
+
+// Helper function for loading state styles
+const getLoadingStyles = () => StyleSheet.create({
+  screen: {
+    flex: 1,
+    backgroundColor: "#000",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 20,
+  },
+});
 
 export default function FrontDoor() {
   const { username } = useLocalSearchParams<{ username: string }>();
@@ -16,10 +28,27 @@ export default function FrontDoor() {
   // 🔧 TODO: replace username check with Supabase role check
   const isAdmin = username === "RobertP";
 
-  if (!fontsLoaded) return null;
+  // Show loading state instead of returning null - ensures elements are always in DOM
+  if (!fontsLoaded) {
+    const loadingStyles = getLoadingStyles();
+    return (
+      <SafeAreaView style={loadingStyles.screen}>
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          <Text style={{ color: green, fontFamily: "VT323_400Regular", opacity: 0.5 }}>Loading...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // Guard against missing username - redirect to login if not present
+  if (!username) {
+    console.log("⚠️ FrontDoor: Missing username parameter - redirecting to login");
+    router.replace("/login");
+    return null;
+  }
 
   const handleAdminPortal = () => {
-    router.push("/admin/orders");
+    router.push("/admin");
   };
 
   const styles = createStyles(responsive);
@@ -44,40 +73,8 @@ export default function FrontDoor() {
         </TouchableOpacity>
       )}
 
-      {/* FOH Navigation Links */}
-      <View style={styles.navContainer}>
-        <TouchableOpacity 
-          style={styles.navButton} 
-          onPress={() => handleAccountNavigation(router, username)}
-          activeOpacity={0.8}
-        >
-          <Text style={styles.navButtonText}>ACCOUNT</Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity 
-          style={styles.navButton} 
-          onPress={() => router.push({ pathname: "/history", params: { username } })}
-          activeOpacity={0.8}
-        >
-          <Text style={styles.navButtonText}>HISTORY</Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity 
-          style={styles.navButton} 
-          onPress={() => router.push("/contact")}
-          activeOpacity={0.8}
-        >
-          <Text style={styles.navButtonText}>CONTACT</Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity 
-          style={styles.navButton} 
-          onPress={() => router.push("/about")}
-          activeOpacity={0.8}
-        >
-          <Text style={styles.navButtonText}>ABOUT</Text>
-        </TouchableOpacity>
-      </View>
+      {/* Bottom Navigation */}
+      <BottomNav currentPage="home" username={username} />
     </SafeAreaView>
   );
 }
@@ -108,6 +105,7 @@ const createStyles = (responsive: any) => StyleSheet.create({
     fontSize: responsive.fontSize.lg,
     opacity: 0.8,
     textAlign: "center",
+    ...TERMINAL_TEXT_SHADOW,
   },
   adminButton: {
     marginTop: responsive.margin.lg,
@@ -130,31 +128,6 @@ const createStyles = (responsive: any) => StyleSheet.create({
     fontSize: responsive.fontSize.xl,
     fontWeight: "bold",
     textAlign: "center",
-  },
-  navContainer: {
-    marginTop: responsive.margin.lg,
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'center',
-    gap: responsive.margin.sm,
-    paddingHorizontal: responsive.padding.sm,
-  },
-  navButton: {
-    paddingVertical: responsive.padding.sm,
-    paddingHorizontal: responsive.padding.md,
-    borderWidth: 1,
-    borderColor: green,
-    backgroundColor: bg,
-    borderRadius: 4,
-    minWidth: responsive.isMobile ? 70 : 80,
-    minHeight: responsive.touchTarget,
-    justifyContent: "center",
-  },
-  navButtonText: {
-    color: green,
-    fontFamily: "VT323_400Regular",
-    fontSize: responsive.fontSize.sm,
-    fontWeight: "bold",
-    textAlign: "center",
+    ...TERMINAL_TEXT_SHADOW,
   },
 });

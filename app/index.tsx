@@ -16,9 +16,7 @@ export default function Index() {
         ]}
       >
         <Image
-          source={{
-            uri: "https://bvmwcswddbepelgctybs.supabase.co/storage/v1/object/public/pizza/PPizza1.png",
-          }}
+          source={require("@/assets/images/icon.png")}
           style={styles.image}
         />
       </Pressable>

@@ -62,17 +62,11 @@ export interface Pizza {
 // ==============================================
 
 export interface TimeSlot {
-  id: number;
-  night_id: number; // 🔧 TODO: Foreign key to nights table
-  start_time: string; // Format: "HH:MM" (24-hour)
-  end_time: string; // Format: "HH:MM" (24-hour)
+  id: string; // uuid
+  night_id: string; // uuid - Foreign key to nights table
+  starts_at: string; // timestamptz - ISO timestamp (e.g., "2025-11-16T17:45:00Z")
   is_available: boolean;
-  max_orders: number;
-  current_orders: number;
-  assigned_member_id?: number; // 🔧 TODO: Foreign key to members table
-  order_id?: number; // 🔧 TODO: Foreign key to orders table
-  created_at: string; // ISO timestamp
-  updated_at: string; // ISO timestamp
+  created_at: string; // timestamptz - ISO timestamp
 }
 
 // ==============================================
@@ -86,8 +80,7 @@ export interface Night {
   is_active: boolean;
   max_capacity: number;
   current_bookings: number;
-  start_time: string; // Format: "HH:MM" (24-hour)
-  end_time: string; // Format: "HH:MM" (24-hour)
+  starts_at: string; // timestamptz - ISO timestamp
   notes?: string;
   created_at: string; // ISO timestamp
   updated_at: string; // ISO timestamp
@@ -155,8 +148,7 @@ export interface OrderWithDetails extends Order {
   member_phone: string;
   pizza_name: string;
   pizza_price: number;
-  time_slot_start: string;
-  time_slot_end: string;
+  time_slot_starts_at: string; // ISO timestamp from time_slots.starts_at
   night_date: string;
   night_day: string;
 }
@@ -285,10 +277,9 @@ export interface CreatePizzaInput {
 export interface UpdatePizzaInput extends Partial<CreatePizzaInput> {}
 
 export interface CreateTimeSlotInput {
-  night_id: number;
-  start_time: string;
-  end_time: string;
-  max_orders: number;
+  night_id: string; // uuid
+  starts_at: string; // timestamptz - ISO timestamp
+  is_available: boolean;
 }
 
 export interface CreateNightInput {
