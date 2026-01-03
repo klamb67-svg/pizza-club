@@ -167,6 +167,34 @@ Both legacy service_role and anon keys were publicly accessible, creating securi
 
 ---
 
+## POST-SESSION UPDATE - QR Redirect Change
+
+**Date**: December 23, 2025 (Later same day)
+
+### Change Made
+- **Updated QR code redirect** from Google Play Store to browser version
+- **File**: `pizzadojo2go/hidden/pizzaclub/index.html`
+- **Old redirect**: `https://play.google.com/apps/internaltest/4701610912534431252`
+- **New redirect**: `https://pizzaclub.pizzadojo2go.com/`
+
+### Implementation Details
+- Added cache-busting headers to prevent browser/CDN caching
+- Added JavaScript redirect as fallback: `window.location.replace()`
+- Added manual link for users if redirects fail
+- Committed and pushed to both submodule and main repository
+
+### Git Commits
+- **Submodule commit**: `9689c04` - "Update QR redirect to browser version with cache-busting"
+- **Main repo commit**: `7b62fb2` - "Update pizzadojo2go submodule"
+
+### Result
+- QR codes on Pizza Club black cards now redirect to browser version instead of Play Store
+- Users can access the app via web browser without needing to download from Play Store
+- Change deployed and verified working
+
+---
+
 *End of Session Summary*
+
 
 
