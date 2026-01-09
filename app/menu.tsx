@@ -24,6 +24,13 @@ const TABLE_URL =
 
 const isMobile = Platform.OS === 'ios' || Platform.OS === 'android';
 
+// Type declaration for window.sessionStorage (web only)
+declare global {
+  interface Window {
+    sessionStorage?: Storage;
+  }
+}
+
 const TIME_SLOTS = [
   "17:15",
   "17:30",
@@ -118,6 +125,29 @@ interface Night {
   dayOfWeek: string;
 }
 
+// Helper function to safely access sessionStorage (web only)
+const getSessionStorageItem = (key: string): string | null => {
+  if (Platform.OS === 'web' && typeof window !== 'undefined' && window.sessionStorage) {
+    try {
+      return window.sessionStorage.getItem(key);
+    } catch (error) {
+      console.error('Error accessing sessionStorage:', error);
+      return null;
+    }
+  }
+  return null;
+};
+
+const setSessionStorageItem = (key: string, value: string): void => {
+  if (Platform.OS === 'web' && typeof window !== 'undefined' && window.sessionStorage) {
+    try {
+      window.sessionStorage.setItem(key, value);
+    } catch (error) {
+      console.error('Error setting sessionStorage:', error);
+    }
+  }
+};
+
 export default function Menu() {
   const [pizzas, setPizzas] = useState<Pizza[]>([]);
   const [loadingPizzas, setLoadingPizzas] = useState(true);
@@ -126,11 +156,13 @@ export default function Menu() {
   const [nights, setNights] = useState<Night[]>([]);
   const [takenSlots, setTakenSlots] = useState<Set<string>>(new Set());
   const [loadingSlots, setLoadingSlots] = useState(false);
-  const [hasSeenRules, setHasSeenRules] = useState(false);
+  // Initialize from sessionStorage if available, otherwise default to false
+  const [hasSeenRules, setHasSeenRules] = useState(() => {
+    const stored = getSessionStorageItem('pizzaClub_hasSeenRules');
+    return stored === 'true';
+  });
   const router = useRouter();
   const { username } = useLocalSearchParams<{ username: string }>();
-
-  // Show rules modal on first visit (hasSeenRules starts as false, so modal will show)
 
   // Load pizzas from database
   useEffect(() => {
@@ -291,6 +323,7 @@ export default function Menu() {
 
   const handleAgreeToRules = () => {
     setHasSeenRules(true);
+    setSessionStorageItem('pizzaClub_hasSeenRules', 'true');
   };
 
   const handleDonationLink = () => {
