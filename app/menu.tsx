@@ -10,6 +10,8 @@ import {
   ImageBackground,
   Platform,
   ActivityIndicator,
+  Modal,
+  Linking,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter, useLocalSearchParams } from "expo-router";
@@ -124,8 +126,11 @@ export default function Menu() {
   const [nights, setNights] = useState<Night[]>([]);
   const [takenSlots, setTakenSlots] = useState<Set<string>>(new Set());
   const [loadingSlots, setLoadingSlots] = useState(false);
+  const [hasSeenRules, setHasSeenRules] = useState(false);
   const router = useRouter();
   const { username } = useLocalSearchParams<{ username: string }>();
+
+  // Show rules modal on first visit (hasSeenRules starts as false, so modal will show)
 
   // Load pizzas from database
   useEffect(() => {
@@ -284,12 +289,77 @@ export default function Menu() {
     });
   };
 
+  const handleAgreeToRules = () => {
+    setHasSeenRules(true);
+  };
+
+  const handleDonationLink = () => {
+    Linking.openURL('https://www.amazon.com/hz/wishlist/ls/1LASTYI5W6HFO?ref_=wl_share');
+  };
+
   return (
     <ImageBackground source={{ uri: TABLE_URL }} style={styles.background}>
       <LinearGradient
         colors={["transparent", "rgba(255,255,255,0.08)"]}
         style={styles.gradientOverlay}
       />
+
+      <Modal
+        visible={!hasSeenRules}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={handleAgreeToRules}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <ScrollView contentContainerStyle={styles.modalScrollContent}>
+              <Text style={styles.modalTitle}>RULES OF PIZZA CLUB</Text>
+              
+              <View style={styles.ruleItem}>
+                <Text style={styles.ruleNumber}>1.</Text>
+                <Text style={styles.ruleText}>First rule of Pizza Club is you don't talk about Pizza Club</Text>
+              </View>
+
+              <View style={styles.ruleItem}>
+                <Text style={styles.ruleNumber}>2.</Text>
+                <Text style={styles.ruleText}>The second rule of Pizza Club is you don't talk about Pizza Club</Text>
+              </View>
+
+              <View style={styles.ruleItem}>
+                <Text style={styles.ruleNumber}>3.</Text>
+                <Text style={styles.ruleText}>One pizza per order</Text>
+              </View>
+
+              <View style={styles.ruleItem}>
+                <Text style={styles.ruleNumber}>4.</Text>
+                <Text style={styles.ruleText}>If the number of members exceeds available time slots, a lottery system will be implemented</Text>
+              </View>
+
+              <View style={styles.ruleItem}>
+                <Text style={styles.ruleNumber}>5.</Text>
+                <Text style={styles.ruleText}>No payments accepted - consider a donation: {' '}
+                  <TouchableOpacity onPress={handleDonationLink} style={styles.linkButton}>
+                    <Text style={styles.donationLink}>Amazon Wish List</Text>
+                  </TouchableOpacity>
+                </Text>
+              </View>
+
+              <View style={styles.ruleItem}>
+                <Text style={styles.ruleNumber}>6.</Text>
+                <Text style={styles.ruleText}>Failure to pick up pizza revokes membership</Text>
+              </View>
+
+              <TouchableOpacity
+                style={styles.agreeButton}
+                onPress={handleAgreeToRules}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.agreeButtonText}>AGREE TO RULES</Text>
+              </TouchableOpacity>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
 
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={styles.title}>Choose Your Pizza</Text>
@@ -801,5 +871,114 @@ const styles = StyleSheet.create({
     textShadowColor: "#00aa44",
     textShadowOffset: { width: 0, height: 0 },
     textShadowRadius: 2,
+  },
+
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.9)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: isMobile ? 20 : 40,
+  },
+
+  modalContent: {
+    backgroundColor: "#001a00",
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: "#00FF66",
+    maxWidth: isMobile ? "100%" : 500,
+    width: "100%",
+    maxHeight: isMobile ? "90%" : "80%",
+    shadowColor: "#00FF66",
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.8,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+
+  modalScrollContent: {
+    padding: isMobile ? 20 : 30,
+    alignItems: "center",
+  },
+
+  modalTitle: {
+    fontSize: isMobile ? 24 : 28,
+    color: "#00FF66",
+    fontFamily: "VT323_400Regular",
+    fontWeight: "bold",
+    textAlign: "center",
+    marginBottom: 20,
+    textShadowColor: "#00aa44",
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 8,
+  },
+
+  ruleItem: {
+    flexDirection: "row",
+    marginBottom: 15,
+    width: "100%",
+    flexWrap: "wrap",
+  },
+
+  ruleNumber: {
+    color: "#00FF66",
+    fontSize: isMobile ? 16 : 18,
+    fontFamily: "VT323_400Regular",
+    fontWeight: "bold",
+    marginRight: 10,
+    minWidth: 25,
+  },
+
+  ruleText: {
+    color: "#00FF66",
+    fontSize: isMobile ? 16 : 18,
+    fontFamily: "VT323_400Regular",
+    lineHeight: isMobile ? 22 : 26,
+    flex: 1,
+    opacity: 0.9,
+    textShadowColor: "#00aa44",
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 4,
+  },
+
+  linkButton: {
+    display: "inline",
+  },
+
+  donationLink: {
+    color: "#FFD700",
+    fontSize: isMobile ? 16 : 18,
+    fontFamily: "VT323_400Regular",
+    textDecorationLine: "underline",
+    textShadowColor: "rgba(255, 215, 0, 0.5)",
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 4,
+  },
+
+  agreeButton: {
+    marginTop: 20,
+    paddingVertical: isMobile ? 14 : 16,
+    paddingHorizontal: isMobile ? 30 : 40,
+    borderWidth: 2,
+    borderColor: "#00FF66",
+    backgroundColor: "rgba(0, 26, 0, 0.9)",
+    borderRadius: 8,
+    shadowColor: "#00FF66",
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.8,
+    shadowRadius: 12,
+    elevation: 8,
+    alignSelf: "center",
+  },
+
+  agreeButtonText: {
+    color: "#00FF66",
+    fontFamily: "VT323_400Regular",
+    fontSize: isMobile ? 18 : 20,
+    fontWeight: "bold",
+    textAlign: "center",
+    textShadowColor: "#00aa44",
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 6,
   },
 });
