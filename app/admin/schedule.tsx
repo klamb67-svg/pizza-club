@@ -11,8 +11,11 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../lib/supabase';
-import { supabaseAdmin } from '../../lib/supabaseAdmin';
 import { adminAuth } from '../../lib/adminAuth';
+
+// Get Supabase URL and anon key from environment or use fallback
+const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL || 'https://bvmwcswddbepelgctybs.supabase.co';
+const SUPABASE_ANON_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || 'sb_publishable_2-7AUXVus7corG_aVvM2gQ_uRqAuYoo';
 
 const green = "#00FF66";
 const bg = "#001a00";
@@ -201,32 +204,34 @@ export default function Schedule() {
     
     const newIsLocked = !slot.isLocked;
     
+    // Get current admin username
+    const admin = adminAuth.getCurrentAdmin();
+    if (!admin) {
+      console.error('No admin session found');
+      return;
+    }
+    
     try {
-      if (newIsLocked) {
-        // Lock the slot - insert into database (use admin client to bypass RLS)
-        const { error } = await supabaseAdmin
-          .from('locked_slots')
-          .insert({
-            pickup_date: date,
-            pickup_time: `${time}:00`
-          });
-        
-        if (error) {
-          console.error('Error locking slot:', error);
-          return;
-        }
-      } else {
-        // Unlock the slot - delete from database (use admin client to bypass RLS)
-        const { error } = await supabaseAdmin
-          .from('locked_slots')
-          .delete()
-          .eq('pickup_date', date)
-          .eq('pickup_time', `${time}:00`);
-        
-        if (error) {
-          console.error('Error unlocking slot:', error);
-          return;
-        }
+      // Call Edge Function to lock/unlock slot
+      const response = await fetch(`${SUPABASE_URL}/functions/v1/admin/lock-slot`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+        },
+        body: JSON.stringify({
+          adminUsername: admin.username,
+          pickupDate: date,
+          pickupTime: `${time}:00`,
+          action: newIsLocked ? 'lock' : 'unlock'
+        })
+      });
+
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        console.error('Error toggling lock:', result.error || 'Unknown error');
+        return;
       }
       
       // Update local state

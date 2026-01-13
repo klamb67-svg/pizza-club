@@ -12,8 +12,11 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import * as ScreenOrientation from 'expo-screen-orientation';
 import { supabase } from '../../lib/supabase';
-import { supabaseAdmin } from '../../lib/supabaseAdmin';
 import { adminAuth } from '../../lib/adminAuth';
+
+// Get Supabase URL and anon key from environment or use fallback
+const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL || 'https://bvmwcswddbepelgctybs.supabase.co';
+const SUPABASE_ANON_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || 'sb_publishable_2-7AUXVus7corG_aVvM2gQ_uRqAuYoo';
 
 const green = "#00FF66";
 const bg = "#001a00";
@@ -211,15 +214,31 @@ export default function KitchenDisplaySystem() {
     try {
       console.log('🗑️ Deleting order:', orderId);
       
-      // Use admin client to bypass RLS for delete operation
-      const { error } = await supabaseAdmin
-        .from('orders')
-        .delete()
-        .eq('id', orderId);
+      // Get current admin username
+      const admin = adminAuth.getCurrentAdmin();
+      if (!admin) {
+        Alert.alert('Error', 'No admin session found');
+        return;
+      }
       
-      if (error) {
-        console.error('❌ Order deletion failed:', error);
-        Alert.alert('Error', 'Failed to delete order');
+      // Call Edge Function to delete order
+      const response = await fetch(`${SUPABASE_URL}/functions/v1/admin/delete-order`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+        },
+        body: JSON.stringify({
+          adminUsername: admin.username,
+          orderId: orderId
+        })
+      });
+
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        console.error('❌ Order deletion failed:', result.error || 'Unknown error');
+        Alert.alert('Error', result.error || 'Failed to delete order');
         return;
       }
       
