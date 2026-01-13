@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../lib/supabase';
+import { supabaseAdmin } from '../../lib/supabaseAdmin';
 import { adminAuth } from '../../lib/adminAuth';
 
 const green = "#00FF66";
@@ -202,8 +203,8 @@ export default function Schedule() {
     
     try {
       if (newIsLocked) {
-        // Lock the slot - insert into database
-        const { error } = await supabase
+        // Lock the slot - insert into database (use admin client to bypass RLS)
+        const { error } = await supabaseAdmin
           .from('locked_slots')
           .insert({
             pickup_date: date,
@@ -215,8 +216,8 @@ export default function Schedule() {
           return;
         }
       } else {
-        // Unlock the slot - delete from database
-        const { error } = await supabase
+        // Unlock the slot - delete from database (use admin client to bypass RLS)
+        const { error } = await supabaseAdmin
           .from('locked_slots')
           .delete()
           .eq('pickup_date', date)

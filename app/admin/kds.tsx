@@ -12,6 +12,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import * as ScreenOrientation from 'expo-screen-orientation';
 import { supabase } from '../../lib/supabase';
+import { supabaseAdmin } from '../../lib/supabaseAdmin';
 import { adminAuth } from '../../lib/adminAuth';
 
 const green = "#00FF66";
@@ -210,7 +211,8 @@ export default function KitchenDisplaySystem() {
     try {
       console.log('🗑️ Deleting order:', orderId);
       
-      const { error } = await supabase
+      // Use admin client to bypass RLS for delete operation
+      const { error } = await supabaseAdmin
         .from('orders')
         .delete()
         .eq('id', orderId);
