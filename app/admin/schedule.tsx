@@ -213,7 +213,7 @@ export default function Schedule() {
     
     try {
       // Call Edge Function to lock/unlock slot
-      const response = await fetch(`${SUPABASE_URL}/functions/v1/admin/lock-slot`, {
+      const response = await fetch(`${SUPABASE_URL}/functions/v1/lock-slot`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

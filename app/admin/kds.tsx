@@ -222,7 +222,7 @@ export default function KitchenDisplaySystem() {
       }
       
       // Call Edge Function to delete order
-      const response = await fetch(`${SUPABASE_URL}/functions/v1/admin/delete-order`, {
+      const response = await fetch(`${SUPABASE_URL}/functions/v1/delete-order`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
