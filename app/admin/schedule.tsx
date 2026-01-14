@@ -18,6 +18,14 @@ const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL || 'https://bvmwcswddb
 const SUPABASE_ANON_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || 'sb_publishable_2-7AUXVus7corG_aVvM2gQ_uRqAuYoo';
 const ADMIN_SECRET = process.env.EXPO_PUBLIC_ADMIN_SECRET || '';
 
+// Debug: Log environment variable loading
+console.log('🔍 Admin Secret Debug:', {
+  hasEnvVar: !!process.env.EXPO_PUBLIC_ADMIN_SECRET,
+  envVarLength: process.env.EXPO_PUBLIC_ADMIN_SECRET?.length || 0,
+  adminSecretLength: ADMIN_SECRET.length,
+  adminSecretPresent: !!ADMIN_SECRET
+});
+
 const green = "#00FF66";
 const bg = "#001a00";
 const darkGray = "#1a1a1a";
