@@ -16,14 +16,16 @@ import { adminAuth } from '../../lib/adminAuth';
 // Get Supabase URL and anon key from environment or use fallback
 const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL || 'https://bvmwcswddbepelgctybs.supabase.co';
 const SUPABASE_ANON_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || 'sb_publishable_2-7AUXVus7corG_aVvM2gQ_uRqAuYoo';
-const ADMIN_SECRET = process.env.EXPO_PUBLIC_ADMIN_SECRET || '';
+// Fallback value matches .env file - Expo needs restart to pick up new EXPO_PUBLIC_ vars
+const ADMIN_SECRET = process.env.EXPO_PUBLIC_ADMIN_SECRET || 'pc2k9mX7vN4qR8wL3jF6hT1bY5zA0dE9sK2pM8nQ4rU6vW0xZ3cB7jH1gF5tY9';
 
 // Debug: Log environment variable loading
 console.log('🔍 Admin Secret Debug:', {
   hasEnvVar: !!process.env.EXPO_PUBLIC_ADMIN_SECRET,
   envVarLength: process.env.EXPO_PUBLIC_ADMIN_SECRET?.length || 0,
   adminSecretLength: ADMIN_SECRET.length,
-  adminSecretPresent: !!ADMIN_SECRET
+  adminSecretPresent: !!ADMIN_SECRET,
+  usingFallback: !process.env.EXPO_PUBLIC_ADMIN_SECRET
 });
 
 const green = "#00FF66";
