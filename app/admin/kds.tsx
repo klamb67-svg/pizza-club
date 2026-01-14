@@ -117,7 +117,7 @@ export default function KitchenDisplaySystem() {
           pizzas!inner(name, preparation_time)
         `)
         .not('status', 'eq', 'cancelled')
-        .order('created_at', { ascending: true });
+        .order('created_at', { ascending: false }); // Newest orders first
       
       if (error) {
         console.error('❌ Error loading KDS orders:', error);
