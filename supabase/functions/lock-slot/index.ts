@@ -13,9 +13,15 @@ const corsHeaders = {
 }
 
 serve(async (req) => {
-  // Handle CORS preflight
+  // Handle CORS preflight - must be explicit and return empty body
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { status: 200, headers: corsHeaders })
+    return new Response(null, { 
+      status: 204, 
+      headers: {
+        ...corsHeaders,
+        'Access-Control-Allow-Credentials': 'false',
+      }
+    })
   }
 
   try {
