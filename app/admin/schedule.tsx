@@ -219,6 +219,7 @@ export default function Schedule() {
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+          'apikey': SUPABASE_ANON_KEY,
         },
         body: JSON.stringify({
           adminUsername: admin.username,
@@ -228,9 +229,23 @@ export default function Schedule() {
         })
       });
 
+      // Handle non-OK responses
+      if (!response.ok) {
+        let errorMessage = 'Unknown error';
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || `HTTP ${response.status}: ${response.statusText}`;
+        } catch (e) {
+          errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+        }
+        console.error('Error toggling lock:', errorMessage);
+        console.error('Response status:', response.status);
+        return;
+      }
+
       const result = await response.json();
 
-      if (!response.ok || !result.success) {
+      if (!result.success) {
         console.error('Error toggling lock:', result.error || 'Unknown error');
         return;
       }
