@@ -11,7 +11,7 @@ const supabaseUrl =
 
 const serviceRoleKey = 
   process.env.SUPABASE_SERVICE_ROLE_KEY || 
-  'sb_secret_VxWID9s9wXpKCe5zLXRMNw_kqh1qWPP'
+  'sb_secret_2DaO2bwMEPHwCI1aTH3Tjw_c36rWpJp'
 
 export const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {
   auth: {

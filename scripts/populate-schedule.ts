@@ -2,7 +2,7 @@ import { createClient } from '@supabase/supabase-js';
 import 'dotenv/config';
 
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || 'https://bvmwcswddbepelgctybs.supabase.co';
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || 'sb_secret_VxWID9s9wXpKCe5zLXRMNw_kqh1qWPP';
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || 'sb_secret_2DaO2bwMEPHwCI1aTH3Tjw_c36rWpJp';
 
 const supabase = createClient(supabaseUrl, supabaseKey);
 
