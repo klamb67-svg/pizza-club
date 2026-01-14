@@ -229,26 +229,33 @@ export default function Schedule() {
         headers: {
           'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
           'apikey': SUPABASE_ANON_KEY,
-          'x-admin-secret': ADMIN_SECRET ? '***' : 'MISSING',
+        },
+        body: {
+          adminUsername: admin.username,
+          pickupDate: date,
+          pickupTime: `${time}:00`,
+          action: newIsLocked ? 'lock' : 'unlock',
+          adminSecret: ADMIN_SECRET ? '***' : 'MISSING',
         },
         anonKeyValue: SUPABASE_ANON_KEY,
         supabaseUrlValue: SUPABASE_URL
       });
       
       // Call Edge Function to lock/unlock slot
+      // Note: adminSecret in body to avoid CORS header restrictions
       const response = await fetch(`${SUPABASE_URL}/functions/v1/lock-slot`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
           'apikey': SUPABASE_ANON_KEY,
-          'x-admin-secret': ADMIN_SECRET,
         },
         body: JSON.stringify({
           adminUsername: admin.username,
           pickupDate: date,
           pickupTime: `${time}:00`,
-          action: newIsLocked ? 'lock' : 'unlock'
+          action: newIsLocked ? 'lock' : 'unlock',
+          adminSecret: ADMIN_SECRET, // Moved to body to avoid CORS issues
         })
       });
 

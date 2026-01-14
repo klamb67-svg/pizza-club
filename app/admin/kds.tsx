@@ -239,11 +239,11 @@ export default function KitchenDisplaySystem() {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
           'apikey': SUPABASE_ANON_KEY,
-          'x-admin-secret': ADMIN_SECRET,
         },
         body: JSON.stringify({
           adminUsername: admin.username,
-          orderId: orderId
+          orderId: orderId,
+          adminSecret: ADMIN_SECRET, // Moved to body to avoid CORS issues
         })
       });
 

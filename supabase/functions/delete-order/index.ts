@@ -89,7 +89,7 @@ serve(async (req) => {
     })
 
     // Parse request body
-    const { adminUsername, orderId } = await req.json()
+    const { adminUsername, orderId, adminSecret: providedSecret } = await req.json()
 
     // Validate input
     if (!adminUsername || !orderId) {
@@ -100,6 +100,21 @@ serve(async (req) => {
         }),
         { 
           status: 400, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      )
+    }
+
+    // Verify admin secret from request body (moved from header to avoid CORS issues)
+    if (!providedSecret || providedSecret !== adminSecret) {
+      console.error('❌ Invalid or missing admin secret')
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: 'Unauthorized: Invalid admin secret' 
+        }),
+        { 
+          status: 401, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
         }
       )

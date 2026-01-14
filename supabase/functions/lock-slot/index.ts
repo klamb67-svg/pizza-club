@@ -64,8 +64,18 @@ serve(async (req) => {
       )
     }
 
-    // Verify admin secret from request header
-    const providedSecret = req.headers.get('x-admin-secret')
+    // Create admin client (bypasses RLS)
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false
+      }
+    })
+
+    // Parse request body
+    const { adminUsername, pickupDate, pickupTime, action, adminSecret: providedSecret } = await req.json()
+
+    // Verify admin secret from request body (moved from header to avoid CORS issues)
     if (!providedSecret || providedSecret !== adminSecret) {
       console.error('❌ Invalid or missing admin secret')
       return new Response(
@@ -79,17 +89,6 @@ serve(async (req) => {
         }
       )
     }
-    
-    // Create admin client (bypasses RLS)
-    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey, {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false
-      }
-    })
-
-    // Parse request body
-    const { adminUsername, pickupDate, pickupTime, action } = await req.json()
 
     // Validate input
     if (!adminUsername || !pickupDate || !pickupTime || !action) {
