@@ -13,12 +13,18 @@ const corsHeaders = {
 }
 
 serve(async (req) => {
-  // Handle CORS preflight - must be explicit and return empty body
+  // Handle CORS preflight - respond to Access-Control-Request-Headers dynamically
   if (req.method === 'OPTIONS') {
+    const requestedHeaders = req.headers.get('Access-Control-Request-Headers')
+    const allowedHeaders = 'authorization, x-client-info, apikey, content-type, x-admin-secret'
+    
     return new Response(null, { 
       status: 204, 
       headers: {
-        ...corsHeaders,
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'POST, OPTIONS',
+        'Access-Control-Allow-Headers': requestedHeaders || allowedHeaders,
+        'Access-Control-Max-Age': '86400',
         'Access-Control-Allow-Credentials': 'false',
       }
     })
