@@ -236,9 +236,24 @@ export default function KitchenDisplaySystem() {
         })
       });
 
+      // Handle non-OK responses
+      if (!response.ok) {
+        let errorMessage = 'Unknown error';
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || `HTTP ${response.status}: ${response.statusText}`;
+        } catch (e) {
+          errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+        }
+        console.error('❌ Order deletion failed:', errorMessage);
+        console.error('Response status:', response.status);
+        Alert.alert('Error', `Failed to delete order: ${errorMessage}`);
+        return;
+      }
+
       const result = await response.json();
 
-      if (!response.ok || !result.success) {
+      if (!result.success) {
         console.error('❌ Order deletion failed:', result.error || 'Unknown error');
         Alert.alert('Error', result.error || 'Failed to delete order');
         return;
