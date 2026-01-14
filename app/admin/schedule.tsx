@@ -16,6 +16,7 @@ import { adminAuth } from '../../lib/adminAuth';
 // Get Supabase URL and anon key from environment or use fallback
 const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL || 'https://bvmwcswddbepelgctybs.supabase.co';
 const SUPABASE_ANON_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || 'sb_publishable_2-7AUXVus7corG_aVvM2gQ_uRqAuYoo';
+const ADMIN_SECRET = process.env.EXPO_PUBLIC_ADMIN_SECRET || '';
 
 const green = "#00FF66";
 const bg = "#001a00";
@@ -218,6 +219,7 @@ export default function Schedule() {
         headers: {
           'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
           'apikey': SUPABASE_ANON_KEY,
+          'x-admin-secret': ADMIN_SECRET ? '***' : 'MISSING',
         },
         anonKeyValue: SUPABASE_ANON_KEY,
         supabaseUrlValue: SUPABASE_URL
@@ -230,6 +232,7 @@ export default function Schedule() {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
           'apikey': SUPABASE_ANON_KEY,
+          'x-admin-secret': ADMIN_SECRET,
         },
         body: JSON.stringify({
           adminUsername: admin.username,

@@ -7,7 +7,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-admin-secret',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
   'Access-Control-Max-Age': '86400',
 }
@@ -22,6 +22,7 @@ serve(async (req) => {
     // Get environment variables
     const supabaseUrl = Deno.env.get('SUPABASE_URL') || 'https://bvmwcswddbepelgctybs.supabase.co'
     const supabaseServiceRoleKey = Deno.env.get('SERVICE_ROLE_KEY')
+    const adminSecret = Deno.env.get('ADMIN_SECRET')
     
     if (!supabaseServiceRoleKey) {
       console.error('❌ SERVICE_ROLE_KEY environment variable is missing')
@@ -32,6 +33,36 @@ serve(async (req) => {
         }),
         { 
           status: 500, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      )
+    }
+
+    if (!adminSecret) {
+      console.error('❌ ADMIN_SECRET environment variable is missing')
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: 'Server configuration error: ADMIN_SECRET not set' 
+        }),
+        { 
+          status: 500, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      )
+    }
+
+    // Verify admin secret from request header
+    const providedSecret = req.headers.get('x-admin-secret')
+    if (!providedSecret || providedSecret !== adminSecret) {
+      console.error('❌ Invalid or missing admin secret')
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: 'Unauthorized: Invalid admin secret' 
+        }),
+        { 
+          status: 401, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
         }
       )
