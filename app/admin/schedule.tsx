@@ -212,6 +212,17 @@ export default function Schedule() {
     }
     
     try {
+      // Debug logging to see what's actually being sent
+      console.log('Lock request debug:', {
+        url: `${SUPABASE_URL}/functions/v1/lock-slot`,
+        headers: {
+          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+          'apikey': SUPABASE_ANON_KEY,
+        },
+        anonKeyValue: SUPABASE_ANON_KEY,
+        supabaseUrlValue: SUPABASE_URL
+      });
+      
       // Call Edge Function to lock/unlock slot
       const response = await fetch(`${SUPABASE_URL}/functions/v1/lock-slot`, {
         method: 'POST',
