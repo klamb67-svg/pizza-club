@@ -2,7 +2,14 @@ import { createClient } from '@supabase/supabase-js';
 import 'dotenv/config';
 
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || 'https://bvmwcswddbepelgctybs.supabase.co';
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || 'sb_secret_2DaO2bwMEPHwCI1aTH3Tjw_c36rWpJp';
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+if (!supabaseKey) {
+  console.error('❌ ERROR: SUPABASE_SERVICE_ROLE_KEY environment variable is required.');
+  console.error('   Set it in your .env file or export it before running this script.');
+  console.error('   NEVER hardcode secret keys in source code.');
+  process.exit(1);
+}
 
 const supabase = createClient(supabaseUrl, supabaseKey);
 

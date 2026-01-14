@@ -21,7 +21,21 @@ serve(async (req) => {
   try {
     // Get environment variables
     const supabaseUrl = Deno.env.get('SUPABASE_URL') || 'https://bvmwcswddbepelgctybs.supabase.co'
-    const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || 'sb_secret_2DaO2bwMEPHwCI1aTH3Tjw_c36rWpJp'
+    const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+    
+    if (!supabaseServiceRoleKey) {
+      console.error('❌ SUPABASE_SERVICE_ROLE_KEY environment variable is missing')
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: 'Server configuration error: SUPABASE_SERVICE_ROLE_KEY not set' 
+        }),
+        { 
+          status: 500, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      )
+    }
     
     // Create admin client (bypasses RLS)
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey, {

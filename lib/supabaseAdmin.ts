@@ -9,9 +9,11 @@ const supabaseUrl =
   process.env.SUPABASE_URL || 
   'https://bvmwcswddbepelgctybs.supabase.co'
 
-const serviceRoleKey = 
-  process.env.SUPABASE_SERVICE_ROLE_KEY || 
-  'sb_secret_2DaO2bwMEPHwCI1aTH3Tjw_c36rWpJp'
+const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+
+if (!serviceRoleKey) {
+  throw new Error('SUPABASE_SERVICE_ROLE_KEY environment variable is required. Never hardcode secret keys in source code.')
+}
 
 export const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {
   auth: {
