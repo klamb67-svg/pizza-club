@@ -60,6 +60,12 @@ export default function AdminLayout() {
           ),
         }}
       />
+      <Tabs.Screen
+        name="logout"
+        options={{
+          href: null, // Hide logout from tabs
+        }}
+      />
     </Tabs>
   );
 }
