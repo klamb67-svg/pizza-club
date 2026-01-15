@@ -167,9 +167,61 @@ export default function KitchenDisplaySystem() {
             date: formattedDate,
             status: order.status,
             created_at: order.created_at,
-            estimated_time: order.pizzas?.preparation_time || 15
+            estimated_time: order.pizzas?.preparation_time || 15,
+            // Store raw values for sorting
+            _pickup_date: order.pickup_date || '',
+            _pickup_time: order.pickup_time || ''
           };
         });
+      
+      // Sort orders: Friday first (earliest to latest), then Saturday (earliest to latest)
+      kdsOrders.sort((a: any, b: any) => {
+        // Get day of week: Friday = 5, Saturday = 6
+        const getDayOfWeek = (dateStr: string): number => {
+          if (!dateStr) return 99; // Put missing dates at end
+          const date = new Date(dateStr + 'T12:00:00');
+          return date.getDay(); // 0=Sunday, 5=Friday, 6=Saturday
+        };
+        
+        // Parse time string (HH:MM:SS or HH:MM) to minutes for comparison
+        const parseTimeToMinutes = (timeStr: string): number => {
+          if (!timeStr) return 9999; // Put missing times at end
+          const [hours, minutes] = timeStr.split(':').map(Number);
+          return (hours || 0) * 60 + (minutes || 0);
+        };
+        
+        const dayA = getDayOfWeek(a._pickup_date);
+        const dayB = getDayOfWeek(b._pickup_date);
+        
+        // Priority 1: Friday (5) always comes before Saturday (6)
+        if (dayA === 5 && dayB === 6) return -1;
+        if (dayA === 6 && dayB === 5) return 1;
+        
+        // Priority 2: If same day of week (both Friday or both Saturday), sort by time
+        if (dayA === dayB) {
+          const timeA = parseTimeToMinutes(a._pickup_time);
+          const timeB = parseTimeToMinutes(b._pickup_time);
+          return timeA - timeB; // Earliest time first
+        }
+        
+        // Priority 3: Any other days go after Friday/Saturday
+        if (dayA === 5 || dayA === 6) return -1;
+        if (dayB === 5 || dayB === 6) return 1;
+        
+        // Priority 4: For non-Fri/Sat days, sort by day then time
+        if (dayA !== dayB) return dayA - dayB;
+        const timeA = parseTimeToMinutes(a._pickup_time);
+        const timeB = parseTimeToMinutes(b._pickup_time);
+        return timeA - timeB;
+      });
+      
+      // Debug: Log first few orders to verify sorting
+      console.log('📋 KDS Orders sorted (first 5):');
+      kdsOrders.slice(0, 5).forEach((order: any, idx: number) => {
+        const date = new Date(order._pickup_date + 'T12:00:00');
+        const dayName = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][date.getDay()];
+        console.log(`  ${idx + 1}. Order #${order.id} - ${dayName} ${order._pickup_date} at ${order._pickup_time}`);
+      });
       
       console.log('✅ Loaded KDS orders:', kdsOrders.length);
       setOrders(kdsOrders);
