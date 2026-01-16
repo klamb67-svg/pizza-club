@@ -540,6 +540,14 @@ export default function Menu() {
           </View>
         )}
 
+        <View style={styles.specialMessageContainer}>
+          <View style={styles.specialMessageWrapper}>
+            <Text style={styles.specialMessageText} numberOfLines={1}>
+              Today's Special: The WI - Meatballs and Cheese Curds!
+            </Text>
+          </View>
+        </View>
+
         <View style={styles.bottomNavContainer}>
           {isAdmin && (
             <TouchableOpacity
@@ -589,6 +597,7 @@ export default function Menu() {
     </ImageBackground>
   );
 }
+
 
 const styles = StyleSheet.create({
   background: { flex: 1, resizeMode: "cover" },
@@ -838,10 +847,42 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
 
-  bottomNavContainer: {
+  specialMessageContainer: {
     marginTop: 30,
+    marginBottom: 5,
     alignItems: "center",
-    paddingTop: 20,
+    width: "100%",
+    paddingHorizontal: isMobile ? 15 : 20,
+  },
+
+  specialMessageWrapper: {
+    width: "100%",
+    maxWidth: 450,
+    backgroundColor: "rgba(0, 0, 0, 0.7)",
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "rgba(0, 255, 102, 0.5)",
+    paddingVertical: 12,
+    paddingHorizontal: 15,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  specialMessageText: {
+    color: "#00FF66",
+    fontSize: isMobile ? 14 : 16,
+    fontFamily: "VT323_400Regular",
+    textShadowColor: "#00aa44",
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 4,
+    textAlign: "center",
+    flexShrink: 0,
+  },
+
+  bottomNavContainer: {
+    marginTop: 5,
+    alignItems: "center",
+    paddingTop: 5,
   },
 
   adminButton: {
