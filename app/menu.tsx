@@ -542,12 +542,9 @@ export default function Menu() {
         <View style={styles.specialMessageContainer}>
           <View style={styles.specialMessageWrapper}>
             {isMobile ? (
-              <View style={{ alignItems: 'center', width: '100%' }}>
-                <Text style={styles.specialMessageTitle}>Tonight's Special</Text>
-                <Text style={styles.specialMessageText}>
-                  Today's Special: The WI - Cheddar Brats and Cheese Curds!
-                </Text>
-              </View>
+              <Text style={styles.specialMessageText}>
+                Today's Special: The WI - Cheddar Brats and Cheese Curds!
+              </Text>
             ) : (
               <Text style={styles.specialMessageText} numberOfLines={1}>
                 Today's Special: The WI - Cheddar Brats and Cheese Curds!
