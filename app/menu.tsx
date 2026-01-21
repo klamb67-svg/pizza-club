@@ -22,7 +22,11 @@ import { supabase } from "../lib/supabase";
 const TABLE_URL =
   "https://bvmwcswddbepelgctybs.supabase.co/storage/v1/object/public/pizza/Table.png";
 
-const isMobile = Platform.OS === 'ios' || Platform.OS === 'android';
+// Detect mobile devices (native apps or mobile browsers)
+const isMobileNative = Platform.OS === 'ios' || Platform.OS === 'android';
+const isMobileBrowser = Platform.OS === 'web' && typeof window !== 'undefined' && 
+  (window.innerWidth <= 768 || (typeof navigator !== 'undefined' && /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)));
+const isMobile = isMobileNative || isMobileBrowser;
 
 // Type declaration for window.sessionStorage (web only)
 declare global {
@@ -538,12 +542,12 @@ export default function Menu() {
         <View style={styles.specialMessageContainer}>
           <View style={styles.specialMessageWrapper}>
             {isMobile ? (
-              <>
+              <View style={{ alignItems: 'center', width: '100%' }}>
                 <Text style={styles.specialMessageTitle}>Tonight's Special</Text>
                 <Text style={styles.specialMessageText}>
                   Today's Special: The WI - Cheddar Brats and Cheese Curds!
                 </Text>
-              </>
+              </View>
             ) : (
               <Text style={styles.specialMessageText} numberOfLines={1}>
                 Today's Special: The WI - Cheddar Brats and Cheese Curds!
