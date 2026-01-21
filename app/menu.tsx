@@ -537,9 +537,18 @@ export default function Menu() {
 
         <View style={styles.specialMessageContainer}>
           <View style={styles.specialMessageWrapper}>
-            <Text style={styles.specialMessageText} numberOfLines={1}>
-              Today's Special: The WI - Meatballs and Cheese Curds!
-            </Text>
+            {isMobile ? (
+              <>
+                <Text style={styles.specialMessageTitle}>Tonight's Special</Text>
+                <Text style={styles.specialMessageText}>
+                  Today's Special: The WI - Cheddar Brats and Cheese Curds!
+                </Text>
+              </>
+            ) : (
+              <Text style={styles.specialMessageText} numberOfLines={1}>
+                Today's Special: The WI - Cheddar Brats and Cheese Curds!
+              </Text>
+            )}
           </View>
         </View>
 
@@ -863,6 +872,18 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
 
+  specialMessageTitle: {
+    color: "#00FF66",
+    fontSize: 16,
+    fontFamily: "VT323_400Regular",
+    textShadowColor: "#00aa44",
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 4,
+    textAlign: "center",
+    marginBottom: 6,
+    fontWeight: "bold",
+  },
+
   specialMessageText: {
     color: "#00FF66",
     fontSize: isMobile ? 14 : 16,
@@ -872,6 +893,7 @@ const styles = StyleSheet.create({
     textShadowRadius: 4,
     textAlign: "center",
     flexShrink: 0,
+    flexWrap: "wrap",
   },
 
   bottomNavContainer: {
