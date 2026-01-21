@@ -32,16 +32,11 @@ declare global {
 }
 
 const TIME_SLOTS = [
-  "17:15",
+  "17:00",
   "17:30",
-  "17:45",
   "18:00",
-  "18:15",
   "18:30",
-  "18:45",
   "19:00",
-  "19:15",
-  "19:30",
 ];
 
 interface Pizza {
@@ -64,8 +59,8 @@ function getCurrentWeekend(): { date: string; dayOfWeek: string }[] {
   const currentHour = now.getHours();
   const currentMinute = now.getMinutes();
   
-  // If it's past Saturday 7:30pm (19:30), show next weekend
-  const isSaturdayEvening = currentDay === 6 && (currentHour > 19 || (currentHour === 19 && currentMinute >= 30));
+  // If it's past Saturday 7:00pm (19:00), show next weekend
+  const isSaturdayEvening = currentDay === 6 && currentHour >= 19;
   const isPastWeekend = currentDay === 0; // Sunday
   
   const daysToAdd = (isSaturdayEvening || isPastWeekend) ? 

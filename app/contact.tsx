@@ -59,7 +59,7 @@ export default function Contact() {
           <Text style={styles.sectionTitle}>HOURS</Text>
           <View style={styles.card}>
             <Text style={styles.hoursText}>Friday & Saturday</Text>
-            <Text style={styles.hoursText}>5:15 PM - 7:30 PM</Text>
+            <Text style={styles.hoursText}>5:00 PM - 7:00 PM</Text>
           </View>
         </View>
       </ScrollView>

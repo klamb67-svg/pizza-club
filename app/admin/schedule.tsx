@@ -32,11 +32,11 @@ const green = "#00FF66";
 const bg = "#001a00";
 const darkGray = "#1a1a1a";
 
-// Generate time slots for 5:15-7:30 PM (15-minute increments)
+// Generate time slots for 5:00-7:00 PM (:00 and :30 intervals)
 const TIME_SLOTS = [
-  "17:15", "17:30", "17:45",
-  "18:00", "18:15", "18:30", "18:45",
-  "19:00", "19:15", "19:30",
+  "17:00", "17:30",
+  "18:00", "18:30",
+  "19:00",
 ];
 
 function formatTime12Hour(time24: string): string {
