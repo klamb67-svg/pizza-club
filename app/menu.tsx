@@ -867,14 +867,14 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "rgba(0, 255, 102, 0.5)",
     paddingVertical: 12,
-    paddingHorizontal: 15,
+    paddingHorizontal: isMobile ? 10 : 15,
     alignItems: "center",
     justifyContent: "center",
   },
 
   specialMessageTitle: {
     color: "#00FF66",
-    fontSize: 16,
+    fontSize: isMobile ? 16 : 18,
     fontFamily: "VT323_400Regular",
     textShadowColor: "#00aa44",
     textShadowOffset: { width: 0, height: 0 },
@@ -882,18 +882,20 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginBottom: 6,
     fontWeight: "bold",
+    width: "100%",
   },
 
   specialMessageText: {
     color: "#00FF66",
-    fontSize: isMobile ? 14 : 16,
+    fontSize: isMobile ? 13 : 16,
     fontFamily: "VT323_400Regular",
     textShadowColor: "#00aa44",
     textShadowOffset: { width: 0, height: 0 },
     textShadowRadius: 4,
     textAlign: "center",
-    flexShrink: 0,
-    flexWrap: "wrap",
+    flexShrink: 1,
+    width: "100%",
+    paddingHorizontal: 5,
   },
 
   bottomNavContainer: {
