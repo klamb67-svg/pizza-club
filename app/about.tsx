@@ -22,6 +22,10 @@ export default function About() {
   const handleDonationLink = () => {
     Linking.openURL('https://www.amazon.com/hz/wishlist/ls/1LASTYI5W6HFO?ref_=wl_share');
   };
+
+  const handleShopLink = () => {
+    Linking.openURL('https://www.pizzadojo2go.com/shop.html');
+  };
   
   return (
     <SafeAreaView style={styles.container}>
@@ -87,9 +91,13 @@ export default function About() {
 
           <View style={styles.ruleItem}>
             <Text style={styles.ruleNumber}>5.</Text>
-            <Text style={styles.ruleText}>No payments accepted - consider a donation: {' '}
+            <Text style={styles.ruleText}>No payments accepted - support the dojo: {' '}
               <TouchableOpacity onPress={handleDonationLink} style={styles.linkButton}>
                 <Text style={styles.donationLink}>Amazon Wishlist</Text>
+              </TouchableOpacity>
+              {' or '}
+              <TouchableOpacity onPress={handleShopLink} style={styles.linkButton}>
+                <Text style={styles.donationLink}>Shop</Text>
               </TouchableOpacity>
             </Text>
           </View>
