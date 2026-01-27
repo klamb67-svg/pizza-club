@@ -44,6 +44,8 @@ interface KDSOrder {
   status: 'pending' | 'preparing' | 'ready' | 'picked_up' | 'cancelled';
   created_at: string;
   estimated_time: number;
+  _pickup_date?: string; // Raw pickup date for day detection
+  _pickup_time?: string; // Raw pickup time for sorting
 }
 
 export default function KitchenDisplaySystem() {
@@ -344,6 +346,15 @@ export default function KitchenDisplaySystem() {
     }
   };
 
+  const getDayColor = (dateStr: string) => {
+    if (!dateStr) return getStatusColor('pending'); // fallback
+    const date = new Date(dateStr + 'T12:00:00');
+    const dayOfWeek = date.getDay(); // 0=Sunday, 5=Friday, 6=Saturday
+    if (dayOfWeek === 5) return '#00BFFF'; // Friday = Blue
+    if (dayOfWeek === 6) return '#FF4444'; // Saturday = Red
+    return getStatusColor('pending'); // fallback for other days
+  };
+
   const getStatusIcon = (status: KDSOrder['status']) => {
     switch (status) {
       case 'pending': return 'time-outline';
@@ -371,39 +382,42 @@ export default function KitchenDisplaySystem() {
     return order.status === selectedView;
   });
 
-  const renderOrderItem = ({ item }: { item: KDSOrder }) => (
-    <View style={[styles.orderCard, { borderColor: getStatusColor(item.status) }]}>
-      <View style={styles.orderHeader}>
-        <View style={styles.orderIdContainer}>
-          <Text style={styles.orderId}>#{item.id}</Text>
-          <Text style={styles.orderTime}>{item.time_slot} • {item.date}</Text>
-        </View>
-        <View style={styles.headerRight}>
-          <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.status) }]}>
-            <Ionicons 
-              name={getStatusIcon(item.status)} 
-              size={16} 
-              color={bg} 
-            />
-            <Text style={styles.statusText}>{getStatusLabel(item.status)}</Text>
-          </View>
-          <TouchableOpacity
-            style={styles.deleteButton}
-            onPress={() => deleteOrder(item.id)}
-          >
-            <Ionicons name="trash" size={20} color="#FF4444" />
-          </TouchableOpacity>
-        </View>
-      </View>
-      
+  const renderOrderItem = ({ item }: { item: KDSOrder }) => {
+    // Get day color (Friday=Blue, Saturday=Red) - use _pickup_date if available
+    const dayColor = getDayColor(item._pickup_date || item.date);
+    
+    return (
+    <View style={[styles.orderCard, { borderColor: dayColor }]}>
       <View style={styles.orderContent}>
-        <Text style={styles.pizzaName}>{item.pizza_name}</Text>
-        <Text style={styles.memberName}>for {item.member_name}</Text>
-        {item.phone ? <Text style={styles.phoneNumber}>{item.phone}</Text> : null}
-        
-        <View style={styles.orderDetails}>
-          <Text style={styles.estimatedTime}>~{item.estimated_time} min</Text>
+        {/* Line 1: DATE and TIME with Status Badge and Delete Button */}
+        <View style={styles.dateTimeRow}>
+          <Text style={styles.dateTime}>{item.date} • {item.time_slot}</Text>
+          <View style={styles.headerRight}>
+            <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.status) }]}>
+              <Ionicons 
+                name={getStatusIcon(item.status)} 
+                size={16} 
+                color={bg} 
+              />
+              <Text style={styles.statusText}>{getStatusLabel(item.status)}</Text>
+            </View>
+            <TouchableOpacity
+              style={styles.deleteButton}
+              onPress={() => deleteOrder(item.id)}
+            >
+              <Ionicons name="trash" size={20} color="#FF4444" />
+            </TouchableOpacity>
+          </View>
         </View>
+        
+        {/* Line 2: FIRST NAME LAST NAME */}
+        <Text style={styles.memberName}>{item.member_name}</Text>
+        
+        {/* Line 3: PIZZA NAME */}
+        <Text style={styles.pizzaName}>{item.pizza_name}</Text>
+        
+        {/* Line 4: PHONE NUMBER */}
+        {item.phone ? <Text style={styles.phoneNumber}>{item.phone}</Text> : null}
       </View>
       
       <View style={styles.orderActions}>
@@ -445,7 +459,8 @@ export default function KitchenDisplaySystem() {
         )}
       </View>
     </View>
-  );
+    );
+  };
 
   if (loading && orders.length === 0) {
     return (
@@ -599,8 +614,8 @@ const styles = StyleSheet.create({
   orderCard: {
     backgroundColor: darkGray,
     borderRadius: 12,
-    padding: 20,
-    marginBottom: 15,
+    padding: 15,
+    marginBottom: 12,
     borderWidth: 3,
     shadowColor: green,
     shadowOffset: { width: 0, height: 2 },
@@ -608,14 +623,11 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 4,
   },
-  orderHeader: {
+  dateTimeRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 15,
-  },
-  orderIdContainer: {
-    flex: 1,
+    marginBottom: 4,
   },
   headerRight: {
     flexDirection: 'row',
@@ -628,17 +640,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 68, 68, 0.1)',
     borderWidth: 1,
     borderColor: '#FF4444',
-  },
-  orderId: {
-    color: green,
-    fontSize: 20,
-    fontFamily: 'VT323_400Regular',
-    fontWeight: 'bold',
-  },
-  orderTime: {
-    color: '#ccc',
-    fontSize: 14,
-    fontFamily: 'VT323_400Regular',
   },
   statusBadge: {
     flexDirection: 'row',
@@ -655,42 +656,35 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   orderContent: {
-    marginBottom: 15,
+    marginBottom: 10,
   },
-  pizzaName: {
+  dateTime: {
     color: green,
-    fontSize: 22,
+    fontSize: 26,
     fontFamily: 'VT323_400Regular',
     fontWeight: 'bold',
-    marginBottom: 5,
+    marginBottom: 4,
   },
   memberName: {
     color: '#ccc',
-    fontSize: 16,
+    fontSize: 22,
     fontFamily: 'VT323_400Regular',
+    fontWeight: 'bold',
+    marginBottom: 4,
+  },
+  pizzaName: {
+    color: '#FFFF00',
+    fontSize: 22,
+    fontFamily: 'VT323_400Regular',
+    fontWeight: 'bold',
+    marginBottom: 4,
   },
   phoneNumber: {
     color: '#888',
-    fontSize: 14,
-    fontFamily: 'VT323_400Regular',
-    marginTop: 2,
-  },
-  orderDetails: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: 10,
-  },
-  price: {
-    color: green,
-    fontSize: 18,
+    fontSize: 22,
     fontFamily: 'VT323_400Regular',
     fontWeight: 'bold',
-  },
-  estimatedTime: {
-    color: '#FFA500',
-    fontSize: 14,
-    fontFamily: 'VT323_400Regular',
+    marginBottom: 0,
   },
   orderActions: {
     marginTop: 10,
