@@ -551,11 +551,11 @@ export default function Menu() {
           <View style={styles.specialMessageWrapper}>
             {isMobile ? (
               <Text style={styles.specialMessageText}>
-                Today's Special: The WI - Cheddar Brats and Cheese Curds!
+                Today's Special: Spicy Pepperoni & Pineapple
               </Text>
             ) : (
               <Text style={styles.specialMessageText} numberOfLines={1}>
-                Today's Special: The WI - Cheddar Brats and Cheese Curds!
+                Today's Special: Spicy Pepperoni & Pineapple
               </Text>
             )}
           </View>
