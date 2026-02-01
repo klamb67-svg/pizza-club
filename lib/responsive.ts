@@ -198,6 +198,7 @@ export const useResponsiveValues = () => {
       xl: getResponsiveFontSize('xl', responsive.screenSize),
       xxl: getResponsiveFontSize('xxl', responsive.screenSize),
       xxxl: getResponsiveFontSize('xxxl', responsive.screenSize),
+      xxxxl: getResponsiveFontSize('xxxxl', responsive.screenSize),
       title: getResponsiveFontSize('title', responsive.screenSize),
     },
     // Layout

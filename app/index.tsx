@@ -132,6 +132,7 @@ const createStyles = (responsive: ReturnType<typeof useResponsiveValues>) =>
     topText: {
       color: PINK,
       fontStyle: "italic",
+      fontWeight: "bold",
       fontSize: responsive.fontSize.xxxxl,
       textAlign: "center",
       paddingHorizontal: 16,
